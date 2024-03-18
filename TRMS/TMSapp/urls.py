@@ -19,5 +19,6 @@ urlpatterns = [
     path('tasks/', tasks_view, name='tasks'),
     path('messages/', messages_view, name='messages'),
     path('send_message/<int:recipient_id>/', views.send_message, name='send_message'),
+    path('best-route/', views.display_best_route, name='display_best_route'),
 ]  
 

@@ -62,12 +62,36 @@
     <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Save Changes</button>
+        <button type="submit">Make Changes</button>
     </form>
 </div>
 
 
 <body>
+    {% block content %}
+    <h1>Find Best Route</h1>
+    <form action="{% url 'display_best_route' %}" method="get">
+        <label for="start">Start Location:</label>
+        <input type="text" id="start" name="start" required>
+
+        <label for="end">End Location:</label>
+        <input type="text" id="end" name="end" required>
+
+        <button type="submit">Find Route</button>
+    </form>
+
+    <hr>
+
+    <h2>Best Route Details</h2>
+    {% if route %}
+        <p><strong>From:</strong> {{ route.start_location }}</p>
+        <p><strong>To:</strong> {{ route.end_location }}</p>
+        <p><strong>Distance:</strong> {{ route.distance }} km</p>
+        <!-- You can add more details here -->
+    {% else %}
+        <p>No suitable route found.</p>
+    {% endif %}
+{% endblock %}
     {% comment %} <h1>{{ driver.user.username }}'s Profile</h1>
     <img src="{{ driver.profile_pic.url }}" alt="Profile Picture">
     <p>Email: {{ driver.user.email }}</p>
