@@ -10,9 +10,20 @@
             From: {{ message.sender.username }}<br>
             Subject: {{ message.subject }}<br>
             Message: {{ message.body }}
+          
+
         </li>
     {% endfor %}
     </ul>
 {% else %}
     <p>You have no messages.</p>
 {% endif %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Send Message</button>
+</form>
+{% endblock %}
+<a href="{% url 'inbox' %}">Inbox</a>
+<a href="{% url 'compose_message' %}">Compose Message</a>

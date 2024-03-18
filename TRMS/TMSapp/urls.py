@@ -13,8 +13,8 @@ urlpatterns = [
     path('manager_dashboard/', views.manager_dashboard, name='manager_dashboard'),
     path('driver_dashboard/', views.driver_dashboard, name='driver_dashboard'),
     path('driver/', views.driver, name='driver'),
-    path('compose/', compose_message, name='compose_message'),
+    path('compose_message/', compose_message, name='compose_message'),
     path('inbox/', inbox, name='inbox'),
-     path('tasks/', tasks_view, name='tasks'),
+    path('tasks/', tasks_view, name='tasks'),
     path('messages/', messages_view, name='messages'),
 ]

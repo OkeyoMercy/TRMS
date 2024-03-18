@@ -1,4 +1,4 @@
-<!-- driver_profile.html -->
+
 {% load static %}
 <!DOCTYPE html>
 <html>
@@ -10,7 +10,7 @@
             <button class="dropbtn">ALERTS</button>
             <div class="dropdown-content">
                 {% comment %} <a href="{% url 'driver_profile' user_id=request.user.id%}">Profile</a> {% endcomment %}
-                
+                 
                 <ul>
                     <li><a href="{% url 'tasks' %}">Tasks</a></li>
                     <li><a href="{% url 'messages' %}">Messages</a></li>
