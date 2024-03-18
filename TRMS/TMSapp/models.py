@@ -1,6 +1,9 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.conf import settings
+from django.db.models.signals import post_save
+from django.contrib.auth.models import User
+from django.dispatch import receiver
 
 default_image_path = settings.STATIC_URL + 'assets/img/faces/avatar.jpg'
 
@@ -20,9 +23,9 @@ class Driver(models.Model):
     
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    name = models.CharField(default = 'Okeyo Mercy(Default)',max_length=100, null =True)
-    bio = models.TextField(default= 'i am mercy achieng i am a transcountry driver with 4years of experience',blank=True)
-    profile_image = models.ImageField(upload_to='C:\\Users\\user\\Desktop\\TRMS\\TRMS\\TRMS\\static\\assets\\img', blank=True,default='static/assets/img/faces/avatar.jpg')
+    name = models.CharField(max_length=100, null =True)
+    bio = models.TextField(blank=True)
+    profile_image = models.ImageField( blank=True,default='static/assets/img/faces/avatar.jpg')
 
     def __str__(self):
         return "{self.user.username} 's profile"
@@ -35,16 +38,13 @@ class Profile(models.Model):
 
 
 class Message(models.Model):
-    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
-    recipient = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
-    subject = models.CharField(max_length=255, default='No Subject')
-    body = models.TextField()
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
+    content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
-    category = models.CharField(max_length=100, default='General')
 
     def __str__(self):
-        return f"From: {self.sender}, To: {self.recipient}, Subject: {self.subject}"
+        return f'{self.sender} to {self.recipient} at {self.timestamp}'
 
 class Task(models.Model):
     title = models.CharField(max_length=255)
@@ -61,3 +61,10 @@ class YourModel(models.Model):
 
     def __str__(self):
         return self.name
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+    else:
+        instance.profile.save()

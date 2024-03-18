@@ -13,19 +13,57 @@
                  
                 <ul>
                     <li><a href="{% url 'tasks' %}">Tasks</a></li>
-                    <li><a href="{% url 'messages' %}">Messages</a></li>
+                    <li><a href="{% url 'inbox' %}">Messages</a></li>
                     <!-- Add other menu items as needed -->
                 </ul>
             </div>
         </div>
     </nav>   
-        <h2>Tasks</h2>
+       
         <ul>
             {% for task in tasks %}
                 <li>{{ task.title }} - {{ task.day }} at {{ task.time }}</li>
             {% endfor %}
         </ul>
+
+       
 </head>
+{% comment %} <div class="profile">
+    <h2>{{ request.user.username }}'s Profile</h2>
+    
+    {% if profile.profile_image %}
+        <img src="{{ profile.profile_image.url }}" alt="Profile Image" style="width: 150px; height: 150px;">
+    {% else %}
+        <p>No profile image</p>
+    {% endif %}
+
+    {% if profile.bio %}
+        <p>Bio: {{ profile.bio }}</p>
+    {% else %}
+        <p>Please fill in your bio.</p>
+    {% endif %}
+</div> {% endcomment %}
+{% if request.user.profile.bio %}
+    <p>Bio: {{ request.user.profile.bio }}</p>
+{% else %}
+    <p>Please fill in your bio.</p>
+{% endif %}
+
+{% if request.user.profile.profile_image %}
+    <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image">
+{% endif %}
+
+
+<div class="edit-profile">
+    <h2>Edit Profile</h2>
+    <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save Changes</button>
+    </form>
+</div>
+
+
 <body>
     {% comment %} <h1>{{ driver.user.username }}'s Profile</h1>
     <img src="{{ driver.profile_pic.url }}" alt="Profile Picture">
@@ -34,12 +72,7 @@
     <!-- Other personal information -->
 
 
-<!-- Profile Update Form -->
-{% comment %} <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}  <!-- Display the form -->
-    <button type="submit">Update Profile</button>
-</form> {% endcomment %}
+ 
 
 {% comment %} {% for driver in drivers %}
     {% if driver.user and driver.user.id %}
@@ -57,5 +90,8 @@
         <textarea name="message" placeholder="Send a message to the superuser"></textarea>
         <button type="submit">Send Message</button>
     </form> {% endcomment %}
+    <footer>
+        <p>Copyright © Your Company | All rights reserved</p>
+    </footer>
 </body>
 </html>

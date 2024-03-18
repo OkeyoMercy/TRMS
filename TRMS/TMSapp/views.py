@@ -6,8 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .models import Driver
+from .models import Driver, Profile
 from .forms import DriverForm
+from .forms import ProfileForm
 from django.contrib.auth.models import User
 from .models import Message
 from .models import Task, Message
@@ -18,6 +19,8 @@ from django.dispatch import receiver
 from django.core.mail import send_mail
 from .models import Message
 import logging
+from django.shortcuts import render
+from .models import Task, Message
 from django.contrib.auth.models import User
 
 
@@ -109,17 +112,18 @@ def driver_delete(request, pk):
         return redirect('driver_list')
     return render(request, 'driver_confirm_delete.html', {'driver': driver})
 def profile(request):
+    profile, created = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
-        form =DriverForm(request.POST, request.FILES, instance=request.user.profile)
+        form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
         if form.is_valid ():
             form.save()
             username = request.user.username
             messages.success(request, f'{username}, Your profile is updated.')
-            return redirect('/')
+            return redirect('profile')
     else:
-        form = DriverForm(instance= request.user.profile)
+        form = ProfileForm(instance= request.user.profile)
     context = {'form':form}  
-    return render (request,'TMSapp/driver.html', context)
+    return render (request,'driver.html', context)
 def compose_message(request):
     admin_users = User.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
 
@@ -138,18 +142,10 @@ def compose_message(request):
 
     return render(request, 'compose_message.html') 
 
-@login_required
-def inbox(request):
- try:
-        received_messages = Message.objects.filter(recipient=request.user)
-        logger.info(f"Messages fetched for {request.user.username}: {received_messages.count()}")
- except Exception as e:
-        logger.error(f"Error fetching messages for {request.user.username}: {str(e)}")
-        # Consider providing feedback to the user or redirecting to an error page
-        raise 
- return render(request, 'inbox.html', {'received_messages': received_messages})
-from django.shortcuts import render
-from .models import Task, Message
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
 
 def tasks_view(request):
     tasks = Task.objects.filter(driver=request.user)
@@ -195,3 +191,21 @@ def send_notification(sender, instance, created, **kwargs):
             [instance.recipient.email],
             fail_silently=False,
         )
+        
+@login_required
+def inbox(request):
+    received_messages = Message.objects.filter(recipient=request.user)
+    sent_messages = Message.objects.filter(sender=request.user)
+    users = User.objects.exclude(id=request.user.id)
+    return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users})
+
+@login_required
+def send_message(request, recipient_id):
+    if request.method == 'POST':
+        recipient = User.objects.get(id=recipient_id)
+        content = request.POST.get('content', '')
+        message = Message.objects.create(sender=request.user, recipient=recipient, content=content)
+        return render(request, 'send_messages.html', {'message_sent': True, 'recipient_id': recipient_id})
+    # Added the following for debugging
+    print("Recipient ID:", recipient_id)
+    return render(request, 'send_messages.html', {'recipient_id': recipient_id})

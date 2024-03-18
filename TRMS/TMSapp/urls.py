@@ -14,7 +14,10 @@ urlpatterns = [
     path('driver_dashboard/', views.driver_dashboard, name='driver_dashboard'),
     path('driver/', views.driver, name='driver'),
     path('compose_message/', compose_message, name='compose_message'),
-    path('inbox/', inbox, name='inbox'),
+    path('inbox/', views.inbox, name='inbox'),
+    path('profile/', views.profile, name='profile'),
     path('tasks/', tasks_view, name='tasks'),
     path('messages/', messages_view, name='messages'),
-]
+    path('send_message/<int:recipient_id>/', views.send_message, name='send_message'),
+]  
+
