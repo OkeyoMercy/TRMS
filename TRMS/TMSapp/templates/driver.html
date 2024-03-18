@@ -43,17 +43,20 @@
         <p>Please fill in your bio.</p>
     {% endif %}
 </div> {% endcomment %}
+<div class="profile">
+{% if request.user.profile.profile_image %}
+    <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image">
+{% endif %}
 {% if request.user.profile.bio %}
     <p>Bio: {{ request.user.profile.bio }}</p>
 {% else %}
     <p>Please fill in your bio.</p>
 {% endif %}
-
-{% if request.user.profile.profile_image %}
-    <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image">
-{% endif %}
-
-
+</div>
+<br>
+<br>
+<br>
+<br>
 <div class="edit-profile">
     <h2>Edit Profile</h2>
     <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
