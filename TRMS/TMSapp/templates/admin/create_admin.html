@@ -1,0 +1,9 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create TMS Administrator</button>
+</form>
+{% endblock %}

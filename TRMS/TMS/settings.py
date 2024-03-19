@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'TMSapp',
+    'TMSapp.apps.TMSappConfig',
     'widget_tweaks',
 ]
 

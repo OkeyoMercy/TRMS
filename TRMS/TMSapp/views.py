@@ -1,29 +1,51 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from .forms import LoginForm
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from .models import Driver
-from .forms import DriverForm
 from django.contrib.auth.models import User
-from .models import Message
-from .models import Task, Message
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Message, User
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views import generic
+from django.views.generic.edit import CreateView
+
+from .forms import (CompanyManagerForm, DriverForm, LoginForm,
+                    TMSAdministratorCreationForm)
+from .models import Company, Driver, Message, Task
+
 
 def login_view(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
+            credential = form.cleaned_data['username']  # This can be either a username or an ID number
             password = form.cleaned_data['password']
-            user = authenticate(username=username, password=password)
             
+            # Attempt to fetch the user by username or ID number
+            try:
+                # If the credential is an ID number, try to find a user with that ID number
+                user = User.objects.get(Q(username=credential) | Q(profile__id_number=credential))
+            except User.DoesNotExist:
+                # If no user is found, set user to None
+                user = None
+
+            # If a user was found, attempt to authenticate
+            if user:
+                user = authenticate(username=user.username, password=password)
+
             if user is not None and user.is_active:
                 login(request, user)
-                return redirect('driver')  # Redirect all users to the drivers page after login
+                
+                # Direct TMS Administrators to the Django admin site
+                if user.is_staff or user.groups.filter(name='TMS Administrator').exists():
+                    return redirect('/admin/')
+                
+                # Redirect based on group membership for other users
+                elif user.groups.filter(name='Manager').exists():
+                    return redirect('manager_dashboard')  # Redirect to Manager dashboard
+                elif user.groups.filter(name='Driver').exists():
+                    return redirect('driver_dashboard')  # Redirect to Driver dashboard
+                else:
+                    messages.error(request, 'No role assigned. Please contact the administrator.')
             else:
                 messages.error(request, 'Invalid login credentials.')
     else:
@@ -31,8 +53,18 @@ def login_view(request):
 
     return render(request, 'login.html', {'form': form})
 
+@login_required
+def dashboard_redirect(request):
+    # Assuming you have some logic to determine the user's role
+    if request.user.groups.filter(name='TMS Administrator').exists():
+        return redirect('/admin/')
+    elif request.user.groups.filter(name='Driver').exists():
+        return redirect('driver_dashboard')
+    # Add more conditions as necessary
+    else:
+        return redirect('generic_dashboard')
 
-# Dashboard views for each user type
+
 @login_required
 def tms_admin_dashboard(request):
     # Ensure the user is a TMS Administrator
@@ -56,60 +88,46 @@ def driver_dashboard(request):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
     return render(request, 'driver_dashboard.html')
-def driver (request):
-    objects = Driver.objects.all()
-    return render (request,'driver.html', {'drivers':driver})
-def driver_list(request):
-    drivers = Driver.objects.all()
-    return render(request, 'driver_list.html', {'drivers': drivers})
 
 @login_required
 def driver_detail(request, pk):
-    driver = Driver.objects.get(pk=pk)
+    driver = get_object_or_404(Driver, pk=pk)
     return render(request, 'driver_detail.html', {'driver': driver})
 
 @login_required
-def driver_create(request):
-    if request.method == 'POST':
-        form = DriverForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('driver_list')
+def driver_list_create_update(request, pk=None):
+    if pk:
+        driver = get_object_or_404(Driver, pk=pk)
+        form = DriverForm(request.POST or None, instance=driver)
     else:
-        form = DriverForm()
-    return render(request, 'driver_form.html', {'form': form})
+        form = DriverForm(request.POST or None)
 
-@login_required
-def driver_update(request, pk):
-    driver = Driver.objects.get(pk=pk)
-    if request.method == 'POST':
-        form = DriverForm(request.POST, instance=driver)
-        if form.is_valid():
-            form.save()
-            return redirect('driver_list')
-    else:
-        form = DriverForm(instance=driver)
-    return render(request, 'driver_form.html', {'form': form})
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        return redirect('driver_list')
+
+    context = {'form': form, 'object': driver if pk else None}
+    return render(request, 'driver_form.html', context)
 
 @login_required
 def driver_delete(request, pk):
-    driver = Driver.objects.get(pk=pk)
+    driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
         driver.delete()
         return redirect('driver_list')
     return render(request, 'driver_confirm_delete.html', {'driver': driver})
+
 def profile(request):
     if request.method == 'POST':
-        form =DriverForm(request.POST, request.FILES, instance=request.user.profile)
-        if form.is_valid ():
+        form = DriverForm(request.POST, request.FILES, instance=request.user.driver)
+        if form.is_valid():
             form.save()
-            username = request.user.username
-            messages.success(request, f'{username}, Your profile is updated.')
-            return redirect('/')
+            messages.success(request, f'{request.user.username}, Your profile is updated.')
+            return redirect('driver_dashboard')
     else:
-        form = DriverForm(instance= request.user.profile)
-    context = {'form':form}  
-    return render (request,'TMSapp/driver.html', context)
+        form = DriverForm(instance=request.user.driver)
+    return render(request, 'driver_profile.html', {'form': form})
+
 def compose_message(request):
     if request.method == 'POST':
         body = request.POST.get('content')
@@ -117,19 +135,40 @@ def compose_message(request):
         recipient = User.objects.get(id=recipient_id)
         Message.objects.create(sender=request.user, recipient=recipient, body=body)
         return redirect('inbox')
-    return render(request, 'Message.html')
+    return render(request, 'compose_message.html')
 
 @login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'inbox.html', {'received_messages': received_messages})
-from django.shortcuts import render
-from .models import Task, Message
 
+@login_required
 def tasks_view(request):
     tasks = Task.objects.filter(driver=request.user)
     return render(request, 'tasks.html', {'tasks': tasks})
 
+@login_required
 def messages_view(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'messages.html', {'received_messages': received_messages})
+
+
+#View for the latest models and froms created by mervitz.
+class TMSAdministratorCreateView(generic.CreateView):
+    form_class = TMSAdministratorCreationForm
+    success_url = reverse_lazy('admin_dashboard')
+    template_name = 'admin/create_admin.html'
+
+class CompanyCreationView(CreateView):
+    model = Company
+    form_class = CompanyManagerForm
+    template_name = 'admin/register_company.html'  # Adjust the path as necessary
+    success_url = reverse_lazy('admin/register_company.html')  # Redirect to the dashboard or any other page after success
+    
+    def form_valid(self, form):
+        # Your logic to handle a valid form
+        form.save()
+        # Show a success message or something similar
+        messages.success(self.request, 'Company and Manager registered successfully.')
+        # Render the same registration page with a new empty form
+        return render(self.request, self.template_name, {'form': self.form_class()})
