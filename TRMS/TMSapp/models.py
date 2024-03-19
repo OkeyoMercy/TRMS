@@ -22,6 +22,7 @@ class Profile(models.Model):
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
     driving_license_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     title = models.CharField(max_length=100, null=True, blank=True)
+    profile_image = models.ImageField(upload_to='profile_pics/', default='default.jpg')
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

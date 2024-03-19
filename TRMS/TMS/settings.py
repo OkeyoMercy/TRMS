@@ -129,7 +129,7 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTHENTICATION_BACKENDS = [
-    'TMSapp.custom_auth.DriverAuthBackend',
+    'TMSapp.backends.EmailOrUsernameModelBackend',
     'django.contrib.auth.backends.ModelBackend',  # Keep the default ModelBackend as well
 ]
 LOGIN_REDIRECT_URL = '/driver/'
