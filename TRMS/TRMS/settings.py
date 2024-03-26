@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'TMSapp.apps.TMSappConfig',
-    'widget_tweaks',
+    'TMSapp.apps.TMSappConfig',  # Your TMS app
+    'widget_tweaks',  # Optional app for customizing form widgets
 ]
 
 MIDDLEWARE = [
@@ -102,10 +102,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -119,17 +115,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-MEDIA_URL = '/images/'
+MEDIA_URL = '/media/'  # Use '/media/' for user-uploaded content (images, etc.)
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Adjust the path as necessary
+    os.path.join(BASE_DIR, 'static'),
 ]
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+# Custom user model (replace with your actual app name)
+AUTH_USER_MODEL = 'TMSapp.CustomUser'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-AUTHENTICATION_BACKENDS = [
-    'TMSapp.backends.EmailOrUsernameModelBackend',
-    'django.contrib.auth.backends.ModelBackend',  # Keep the default ModelBackend as well
-]
-LOGIN_REDIRECT_URL = '/driver/'
+# Custom authentication backend for email or username login (optional)

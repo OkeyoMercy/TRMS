@@ -1,94 +1,86 @@
-from django.conf import settings
-from django.contrib.auth.models import AbstractUser, Group, Permission, User
+from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
+                                        PermissionsMixin)
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
-class Driver(models.Model):
-    name = models.CharField(max_length=100)
+class CustomUserManager(BaseUserManager):
+    def create_user(self, id_number, password=None, **extra_fields):
+        if not id_number:
+            raise ValueError(_('The ID number field must be set'))
+        user = self.model(id_number=id_number, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, id_number, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(id_number, password, **extra_fields)
+
+
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(_('email address'), unique=True)
+    first_name = models.CharField(max_length=150)
+    middle_name = models.CharField(max_length=150, blank=True, null=True)
+    last_name = models.CharField(max_length=150)
     id_number = models.CharField(max_length=100, unique=True)
-    licence_number = models.CharField(max_length=100, unique=True)
-    national_id = models.CharField(max_length=100, unique=True)
-    username = models.CharField(max_length=100, unique=True)
-    password = models.CharField(max_length=100)
-    car_in_charge_of = models.CharField(max_length=100)
-    company_from = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, related_name='drivers')
+    driving_license_number = models.CharField(max_length=20, unique=True)
+    phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    # Use ID number for authentication
+    USERNAME_FIELD = 'id_number'
+
+    REQUIRED_FIELDS = []
+
+    objects = CustomUserManager()
 
     def __str__(self):
-        return f"{self.name} - {self.licence_number}"
+        return self.email
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    id_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
-    driving_license_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    title = models.CharField(max_length=100, null=True, blank=True)
+
+class Profile(CustomUser):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     profile_image = models.ImageField(upload_to='profile_pics/', default='default.jpg')
 
     def __str__(self):
-        return f"{self.user.username}'s Profile"
+        return f"{self.user.get_full_name()}'s Profile"
 
+class TMSAdministrator(CustomUser):
+    title = models.CharField(max_length=50, default='TMS Administrator')
+    region = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"TMS Adminstrator: {self.get_full_name()}"
+
+class Manager(CustomUser):
+    title = models.CharField(max_length=50, default='Manager')
+
+    def __str__(self):
+        return f"Manager: {self.get_full_name()}"
 class Message(models.Model):
-    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
-    recipient = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
+    recipient = models.ForeignKey(CustomUser, related_name='received_messages', on_delete=models.CASCADE)
     subject = models.CharField(max_length=255, default='No Subject')
     body = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Message from {self.sender} to {self.recipient}"
+        return f"Message from {self.sender.get_full_name()} to {self.recipient.get_full_name()}"
 
 class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
-    assignee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assigned_tasks')
+    assignee = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='assigned_tasks')
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField()
 
     def __str__(self):
         return self.title
 
-class TMSAdministrator(AbstractUser):
-    driving_license_number = models.CharField(max_length=20, unique=True)
-    id_number = models.CharField(max_length=20, unique=True)
-    title = models.CharField(max_length=100, default='TMS Administrator')
-    region = models.CharField(max_length=100)
-    middle_name = models.CharField(max_length=30, blank=True, null=True)
-
-    # Specify related_name for groups and user_permissions
-    groups = models.ManyToManyField(
-        Group,
-        verbose_name='groups',
-        blank=True,
-        help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
-        related_name="tms_admin_groups",
-        related_query_name="tmsadmin",
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        verbose_name='user permissions',
-        blank=True,
-        help_text='Specific permissions for this user.',
-        related_name="tms_admin_permissions",
-        related_query_name="tmsadmin",
-    )
-
-    def __str__(self):
-        return self.username
-
-class Manager(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='manager_profile')
-    first_name = models.CharField(max_length=30, default='DefaultFirstName')
-    last_name = models.CharField(max_length=30, default='DefaultLastName')
-    middle_name = models.CharField(max_length=30, blank=True, null=True)
-    driving_license_number = models.CharField(max_length=20, unique=True)
-    id_number = models.CharField(max_length=20, unique=True)
-    title = models.CharField(max_length=100, default='Manager')
-    region = models.CharField(max_length=100)
-
-    def __str__(self):
-        full_name = f"{self.first_name} {self.middle_name} {self.last_name}" if self.middle_name else f"{self.first_name} {self.last_name}"
-        return f"Manager: {full_name}"
 
 class Company(models.Model):
     name = models.CharField(max_length=100)
@@ -99,3 +91,18 @@ class Company(models.Model):
 
     def __str__(self):
         return f"Company: {self.name}"
+class Vehicle(models.Model):
+    registration_number = models.CharField(max_length=20, unique=True)
+    make = models.CharField(max_length=50)
+    model = models.CharField(max_length=50)
+    color = models.CharField(max_length=30)
+
+    def __str__(self):
+        return f"{self.make} {self.model} ({self.registration_number})"
+class Driver(CustomUser):
+    title = models.CharField(max_length=50, default='Driver')
+    vehicle_assigned = models.OneToOneField(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_driver')
+    # Add other fields specific to drivers here
+
+    def __str__(self):
+        return f"Driver: {self.get_full_name()} - {self.driving_license_number}"
