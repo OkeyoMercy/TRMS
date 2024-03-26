@@ -52,7 +52,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'TMS.urls'
+ROOT_URLCONF = 'TRMS.urls'
 
 TEMPLATES = [
     {
@@ -70,7 +70,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'TMS.wsgi.application'
+WSGI_APPLICATION = 'TRMS.wsgi.application'
 
 
 # Database
