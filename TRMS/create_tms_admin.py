@@ -1,14 +1,17 @@
+import os
+
+import django
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'TRMS.settings')
+django.setup()
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-User = get_user_model()
 
-# Attempt to retrieve an existing user by driving license number
-try:
-    tms_admin_user = User.objects.get(driving_license_number='DL123456')
-    print("User with this driving license number already exists.")
-except User.DoesNotExist:
-    # If no user exists with this driving license number, create a new one
+def create_tms_admin():
+    User = get_user_model()
+#CReating a  the first TMS Adminstrator credentials
     tms_admin_user = User.objects.create_user(
         email='admin@example.com',
         password='admin_password',
@@ -20,7 +23,12 @@ except User.DoesNotExist:
         is_staff=True,
         is_superuser=True
     )
-    # Add user to the TMS Administrator group
-    tms_admin_group, _ = Group.objects.get_or_create(name='TMS Administrator')
-    tms_admin_user.groups.add(tms_admin_group)
-    print("TMS administrator created and added to the group.")
+
+    # Assign the user to the TMS Administrator group
+    admin_group, created = Group.objects.get_or_create(name='TMS Administrator')
+    tms_admin_user.groups.add(admin_group)
+
+    print("TMS Administrator created and assigned to group.")
+
+if __name__ == "__main__":
+    create_tms_admin()
