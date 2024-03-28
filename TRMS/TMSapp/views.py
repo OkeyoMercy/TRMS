@@ -21,19 +21,23 @@ def login_view(request):
             credential = form.cleaned_data['username']
             password = form.cleaned_data['password']
             user = authenticate(username=credential, password=password)
-            if user is not None and user.is_active:
-                login(request, user)
+            if user is not None:
+                if user.is_active:
+                    login(request, user)
 
-                if user.groups.filter(name='TMS Administrator').exists():
-                    return redirect('/admin/')
-                elif user.groups.filter(name='Manager').exists():
-                    return redirect('manager_dashboard')
-                elif user.groups.filter(name='Driver').exists():
-                    return redirect('driver_dashboard')
+                    if user.groups.filter(name='TMS Administrator').exists():
+                        return redirect('/admin/')
+                    elif user.groups.filter(name='Manager').exists():
+                        return redirect('manager_dashboard')
+                    elif user.groups.filter(name='Driver').exists():
+                        return redirect('driver_dashboard')
+                    else:
+                        messages.error(request, 'No role assigned. Please contact the administrator.')
                 else:
-                    messages.error(request, 'No role assigned. Please contact the administrator.')
+                    messages.error(request,
+                                   'User account is inactive. Please contact the administrator.')
             else:
-                messages.error(request, 'Invalid login credentials.')
+                messages.error(request, 'Invalid username or password.')
     else:
         form = LoginForm()
     return render(request, 'login.html', {'form': form})
@@ -164,7 +168,7 @@ class DriverRegistrationView(LoginRequiredMixin, CreateView):
     model = Driver
     form_class = DriverRegistrationForm
     template_name = 'manager/register_driver.html'
-    success_url = reverse_lazy('manager/register_driver.html')  # Redirect URL after successful registration
+    success_url = reverse_lazy('manager/register_driver.html')
 
     def form_valid(self, form):
         driver = form.save(commit=False)
