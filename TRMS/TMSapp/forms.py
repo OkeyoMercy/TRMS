@@ -4,18 +4,24 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
+from django.forms.models import ModelForm
 
-from .models import Company, Driver, Manager, Profile
+from .models import Company, Driver, Manager, Message, Profile
 
 User = get_user_model()
 class LoginForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Driving License/National Identification Number'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Your Password'}))
+
+class DriverForm(forms.ModelForm):
+    class Meta:
+        model = Driver
+        fields = ['username','national_id']
 
 class ProfileForm(ModelForm):
     class Meta:
         model = Profile
-        fields = '__all__'
+        fields = ['bio', 'profile_image']
         exclude = ['user']
 
 class TMSAdministratorCreationForm(UserCreationForm):
@@ -139,3 +145,12 @@ class DriverRegistrationForm(forms.ModelForm):
             'profile_image': forms.FileInput(),
         }
 
+        widgets = {
+            'profile_img': FileInput(),
+            'bio': forms.Textarea(attrs={'rows': 4}),
+        }
+       
+class MessageForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['sender', 'recipient']

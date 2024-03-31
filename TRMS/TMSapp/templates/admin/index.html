@@ -48,4 +48,13 @@
             {% endif %}
     </div>
 </div>
+
+{% block content %}
+{{ block.super }}
+
+<div class="my-custom-section">
+    <h1>Custom Admin Section</h1>
+    <p>This is a custom section added to the Django admin index page.</p>
+</div>
+
 {% endblock %}

@@ -1,0 +1,20 @@
+{% extends "index.html" %}  <!-- Assuming you have a base template -->
+
+{% block content %}
+    <h2>Admin Inbox</h2>
+
+    {% if inbox_messages %}
+        <div class="messages">
+            {% for message in inbox_messages %}
+                <div class="message">
+                    <p><strong>From:</strong> {{ message.sender.username }}</p>
+                    <p><strong>Subject:</strong> {{ message.subject }}</p>
+                    <p><strong>Sent at:</strong> {{ message.timestamp }}</p>
+                    <p>{{ message.body }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No messages.</p>
+    {% endif %}
+{% endblock %}

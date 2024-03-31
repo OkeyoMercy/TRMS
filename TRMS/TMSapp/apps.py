@@ -7,5 +7,7 @@ class TMSappConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
 
     def ready(self):
-        from . import signals
+        import TMSapp.models
 
+        from . import signals
+        

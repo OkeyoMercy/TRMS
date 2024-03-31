@@ -39,7 +39,10 @@
       <div class="content">
         <div class="container-fluid">
 
-          {% block content %}{% endblock content %}
+          {% comment %} {% block content %}{% endblock content %} {% endcomment %}
+          <div>
+           {% include 'admin/sidebar.html'%}
+          </div>
 
         </div>
       </div>

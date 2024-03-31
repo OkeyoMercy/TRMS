@@ -1,5 +1,57 @@
-{% for message in received_messages %}
-    <p>From: {{ message.sender.username }}</p>
-    <p>Content: {{ message.content }}</p>
-    <hr>
-{% endfor %}
+
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Add any head content here, if needed -->
+    <link rel="stylesheet" href="{% static 'C:\Users\user\Desktop\TRMS\TRMS\TRMS\static\assets\css\styles\style.css' %}">
+    <script>
+        // JavaScript for message previews
+        document.addEventListener('DOMContentLoaded', function () {
+            // ... rest of your JavaScript code ...
+        });
+    </script>
+</head>
+<body>
+    <h1>Inbox</h1>
+    <div id="inbox-container">
+        <div id="inbox-messages">
+            <h3>Received Messages</h3>
+            <ul class="message-list">
+                {% for message in received_messages %}
+                <li class="message-preview" data-content="{{ message.content }}">
+                    {{ message.sender }} at {{ message.timestamp }}: {{ message.content }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div id="sent-messages">
+            <h3>Sent Messages</h3>
+            <ul class="message-list">
+                {% for message in sent_messages %}
+                <li class="message-preview" data-content="{{ message.content }}">
+                    You sent to {{ message.recipient }} at {{ message.timestamp }}: {{ message.content }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <!-- <div id="message-preview">
+            <h3>Message Preview</h3>
+            <p id="preview-content"></p>
+        </div> -->
+    </div>
+    <div>
+        <h3>New Message</h3>
+        <ul>
+            {% for user in users %}
+            {% if user.id != request.user.id %}
+            <li><a href="{% url 'send_message' recipient_id=user.id %}">{{ user.username }}</a></li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    <footer>
+        <p>Copyright © Your Company | All rights reserved</p>
+    </footer>
+</body>
+</html>

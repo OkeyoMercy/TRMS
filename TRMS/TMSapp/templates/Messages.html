@@ -1,3 +1,16 @@
+{% load static %}
+ <script src="{% static 'C:\Users\user\Desktop\TRMS\TRMS\TRMS\static\assets\js\driver_communication.js' %}"></script> 
+<script type ="text/javascript">
+    let url = 'ws://${windows.location.host}/ws/socket-server/'
+
+    const chatsocket = new websocket (url)
+
+    chatSocket.onmessage = function(e){
+        let data = JSON.parse(e.data)
+        console.log('Data:',data)
+    }
+
+</script>
 {% for message in received_messages %}
     <p>From: {{ message.sender.username }}</p>
     <p>Content: {{ message.content }}</p>
@@ -10,9 +23,20 @@
             From: {{ message.sender.username }}<br>
             Subject: {{ message.subject }}<br>
             Message: {{ message.body }}
+          
+
         </li>
     {% endfor %}
     </ul>
 {% else %}
     <p>You have no messages.</p>
 {% endif %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Send Message</button>
+</form>
+{% endblock %}
+<a href="{% url 'inbox' %}">Inbox</a>
+<a href="{% url 'compose_message' %}">Compose Message</a>
