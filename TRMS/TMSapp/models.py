@@ -28,6 +28,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     id_number = models.CharField(max_length=100, unique=True)
     driving_license_number = models.CharField(max_length=20, unique=True)
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
+    region = models.CharField(max_length=100)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
@@ -41,21 +42,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
-
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     profile_image = models.ImageField(upload_to='profile_pics/', default='default.jpg')
 
     def __str__(self):
         return f"{self.user.get_full_name()}'s Profile"
-
-class TMSAdministrator(CustomUser):
-    title = models.CharField(max_length=50, default='TMS Administrator')
-    region = models.CharField(max_length=100)
-
-    def __str__(self):
-        return f"TMS Adminstrator: {self.get_full_name()}"
-
 class Manager(CustomUser):
     title = models.CharField(max_length=50, default='Manager')
 
@@ -71,7 +63,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.get_full_name()} to {self.recipient.get_full_name()}"
-
 class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -81,7 +72,6 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
-
 
 class Company(models.Model):
     name = models.CharField(max_length=100)

@@ -1,37 +1,56 @@
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import Manager, Profile
+from .models import Company, CustomUser, Driver, Manager, Profile
 
-User = get_user_model()
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+
+@receiver(post_save, sender=CustomUser)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    """
+    Signal to create or update a profile whenever a CustomUser is saved.
+    """
+    # Create a profile for newly created users
     if created:
-        Profile.objects.create(user=instance)
+        Profile.objects.create(user=instance, id_number=instance.id_number, driving_license_number=instance.driving_license_number)
+    # Update the profile for existing users
+    else:
+        profile = Profile.objects.get_or_create(user=instance)[0]
+        profile.id_number = instance.id_number
+        profile.driving_license_number = instance.driving_license_number
+        profile.save()
 
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
+@receiver(post_save, sender=CustomUser)
+def assign_user_group(sender, instance, created, **kwargs):
+    """
+    Signal to assign users to groups based on their specific user type.
+    This assumes you have specific user types like 'Manager', 'Driver', etc., identified by their model class.
+    """
+    if created:
+        # Assign to the 'Manager' group if the user instance is a Manager
+        if isinstance(instance, Manager):
+            manager_group, _ = Group.objects.get_or_create(name='Manager')
+            instance.groups.add(manager_group)
 
-@receiver(post_save, sender=User)
-def add_to_admin_group(sender, instance, created, **kwargs):
-    if created and instance.groups.filter(name='TMS Administrator').exists():
-        admin_group, _ = Group.objects.get_or_create(name='Administrator')
-        instance.groups.add(admin_group)
+        # Assign to the 'Driver' group if the user instance is a Driver
+        elif isinstance(instance, Driver):
+            driver_group, _ = Group.objects.get_or_create(name='Driver')
+            instance.groups.add(driver_group)
 
-@receiver(post_save, sender=User)
-def create_or_update_manager(sender, instance, created, **kwargs):
-    if hasattr(instance, 'profile') and instance.groups.filter(name='Manager').exists():
-        manager, _ = Manager.objects.update_or_create(
-            user=instance,
-            defaults={
-                'first_name': instance.first_name,
-                'last_name': instance.last_name,
-                'id_number': instance.profile.id_number,
-                'driving_license_number': instance.profile.driving_license_number,
-                'region': instance.profile.region
-            }
-        )
+        # Assign to the 'TMS Administrator' group if the user is a superuser
+        elif instance.is_superuser:
+            admin_group, _ = Group.objects.get_or_create(name='TMS Administrator')
+            instance.groups.add(admin_group)
+
+@receiver(post_save, sender=Company)
+def assign_manager_to_company(sender, instance, created, **kwargs):
+    """
+    Signal to handle assigning a manager to a company when a company instance is created.
+    """
+    if created and hasattr(instance, 'manager'):
+        # Ensure the manager is assigned to the 'Manager' group
+        manager_group, _ = Group.objects.get_or_create(name='Manager')
+        instance.manager.groups.add(manager_group)
+        instance.manager.save()
+
+# Include any other signals you need for your application
