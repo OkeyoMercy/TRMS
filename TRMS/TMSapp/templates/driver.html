@@ -46,6 +46,8 @@
 <div class="profile">
 {% if request.user.profile.profile_image %}
     <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image">
+{% else %}
+    <p>No profile image</p>
 {% endif %}
 {% if request.user.profile.bio %}
     <p>Bio: {{ request.user.profile.bio }}</p>
@@ -87,6 +89,9 @@
         <p><strong>From:</strong> {{ route.start_location }}</p>
         <p><strong>To:</strong> {{ route.end_location }}</p>
         <p><strong>Distance:</strong> {{ route.distance }} km</p>
+        {% if weather %}
+    <p>Current weather: {{ weather }}</p>
+{% endif %}
         <!-- You can add more details here -->
     {% else %}
         <p>No suitable route found.</p>
@@ -97,7 +102,7 @@
     <p>Email: {{ driver.user.email }}</p>
     <p>Bio: {{ driver.bio }}</p> {% endcomment %}
     <!-- Other personal information -->
-
+    <li><a href="{% url 'track' %}">VIEW MAP</a></li>
 
  
 

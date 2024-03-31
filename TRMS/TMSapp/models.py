@@ -5,7 +5,8 @@ from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.dispatch import receiver
 
-from TRMS.TRMS.TMSapp.views import calculate_route_score
+
+# from TMSapp.views import calculate_route_score
 
 default_image_path = settings.STATIC_URL + 'assets/img/faces/avatar.jpg'
 
@@ -70,9 +71,12 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
 class Route(models.Model):
     start_location = models.CharField(max_length=255)
     end_location = models.CharField(max_length=255)
-    distance = models.FloatField()  # Distance in kilometers or miles
+    distance = models.FloatField()
+    
+    # Distance in kilometers or miles
     def get_best_route(start_location, end_location):
         # Example pseudocode
+        from TMSapp.utils import calculate_route_score
         routes = Route.objects.filter(start_location=start_location, end_location=end_location)
         best_route = None
         best_score = 0
@@ -91,3 +95,13 @@ class Weather(models.Model):
 class RoadCondition(models.Model):
     route = models.ForeignKey(Route, on_delete=models.CASCADE)
     condition = models.CharField(max_length=255)
+
+
+class track(models.Model):
+    vehicle_id = models.CharField(max_length=50, unique=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Vehicle {self.vehicle_id} at {self.latitude}, {self.longitude} on {self.timestamp}"

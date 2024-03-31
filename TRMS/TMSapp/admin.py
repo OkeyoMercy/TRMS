@@ -1,6 +1,6 @@
 from pyexpat import model
 from django.contrib import admin
-from .models import Message
+from .models import Message, Route
 from django.contrib import admin
 from .models import Driver
 from .models import Profile
@@ -10,6 +10,7 @@ from django.contrib.admin import AdminSite, ModelAdmin
 from .models import YourModel
 
 admin.site.register(Message)
+admin.site.register(Route)
 admin.site.register(Profile)
 # admin_site.register(Model, ModelAdmin)
 

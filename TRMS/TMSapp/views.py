@@ -1,7 +1,10 @@
+from django.conf import settings
+from django.db import router
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 import requests
+import urllib3
 from .forms import LoginForm, MessageForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -26,6 +29,7 @@ from .models import Route, Weather, RoadCondition
 from django.shortcuts import render
 from .models import Task, Message
 from django.contrib.auth.models import User
+from .utils import fetch_weather_for_route, fetch_road_condition_for_route, calculate_route_score
 
 
 logger = logging.getLogger(__name__)
@@ -216,40 +220,50 @@ def send_message(request, recipient_id):
 
 
 
-
 def update_weather_for_route(route):
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={route.end_location}&appid={settings.OPENWEATHER_API_KEY}"
-    response = requests.get(url)
+    
+    if router.end_location and hasattr(settings, 'OPENWEATHER_API_KEY'):
+         url = f"http://api.openweathermap.org/data/2.5/weather?q={route.end_location}&appid={settings.OPENWEATHER_API_KEY}"
+    else: 
+         FileNotFoundError                  
+    
+    response = requests.get(urllib3)
     data = response.json()
     # Parse the data and update the Weather model
     weather_condition = data['weather'][0]['main']  # Simplified example
     Weather.objects.update_or_create(route=route, defaults={'condition': weather_condition})
 
-def calculate_route_score(route, weather, road_condition):
-    """
-    Calculates a score for a given route based on distance, weather, and road condition.
+def calculate_best_route(request):
+    origin = request.GET.get('origin')
+    destination = request.GET.get('destination')
+    
+    # Fetch routes using a third-party API
+    routes = fetch_routes(origin, destination, 'your_api_key_here')
 
-    :param route: Route object containing information about the route.
-    :param weather: Weather object containing weather conditions for the route.
-    :param road_condition: RoadCondition object containing road conditions for the route.
-    :return: A numerical score representing the desirability of the route.
-    """
-    # Base score is the distance - shorter routes are preferred
-    score = route.distance
+    best_route = None
+    best_score = None
 
-    # Adjust score based on weather conditions
-    if weather.condition == 'Good':
-        score -= 10  # Subtract points for good weather
-    elif weather.condition == 'Bad':
-        score += 15  # Add points for bad weather
+    for route in routes['routes']:  # Assuming the API response includes a 'routes' list
+        # For simplicity, let's say each route has an 'id' you can use to fetch weather and road conditions
+        route_id = route['id']
+        
+        # Fetch weather and road conditions for this route (you'll need to implement these functions)
+        weather = fetch_weather_for_route(route_id)
+        road_condition = fetch_road_condition_for_route(route_id)
+        
+        # Calculate a score for the route (you'll need to implement this logic based on your criteria)
+        score = calculate_route_score(route, weather, road_condition)
 
-    # Adjust score based on road conditions
-    if road_condition.condition == 'Good':
-        score -= 10  # Subtract points for good road conditions
-    elif road_condition.condition == 'Bad':
-        score += 20  # Add points for bad road conditions
+        if best_score is None or score < best_score:
+            best_score = score
+            best_route = route
+    
+    if best_route:
+        # Render a template with the best route information
+        return render(request, 'best_route.html', {'route': best_route})
+    else:
+        return HttpResponse("No suitable route found.")
 
-    return score
 
 def display_best_route(request):
     if request.method == 'GET':
@@ -286,3 +300,63 @@ def display_best_route(request):
             return HttpResponse("Unable to determine the best route with the available data.", status=404)
 
         return render(request, 'best_route.html', {'route': best_route})
+
+def track (request):
+    tracking  = {
+        'vehicle_id': '123ABC',
+        'latitude': '40.7128',
+        'longitude': '-74.0060',
+        'timestamp': '2024-03-22 12:00:00'
+    }
+    return render (request,'tracking.html', {'tracking':tracking})
+
+def fetch_routes(origin, destination, api_key):
+    # Example using Mapbox Directions API
+    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{origin};{destination}"
+    params = {
+        "access_token": api_key,
+        "geometries": "geojson"
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        # Process and return relevant data from the response
+        return data
+    else:
+        # Log error or take appropriate action
+        print(f"Error fetching route data: {response.status_code}")
+        return None
+def find_best_route(request):
+    # Get origin and destination from request
+    origin = request.GET.get('origin')
+    destination = request.GET.get('destination')
+
+    # Fetch potential routes for the given origin and destination
+    potential_routes = Route.objects.filter(start_location=origin, end_location=destination)
+
+    if not potential_routes.exists():
+        return HttpResponse("No routes found for the given locations.")
+
+    best_route = None
+    best_score = float('inf')  # Initialize with infinity; lower scores are better
+
+    # Evaluate each potential route
+    for route in potential_routes:
+        # Fetch weather and road condition for the route
+        weather = fetch_weather_for_route(route.id)
+        road_condition = fetch_road_condition_for_route(route.id)
+
+        # Calculate a score for the route based on various factors
+        score = calculate_route_score(route, weather, road_condition)
+
+        # Determine if this is the best route so far
+        if score < best_score:
+            best_score = score
+            best_route = route
+
+    # Render a response based on the best route found
+    if best_route:
+        context = {'route': best_route, 'score': best_score}
+        return render(request, 'best_route.html', context)
+    else:
+        return HttpResponse("Unable to determine the best route.")

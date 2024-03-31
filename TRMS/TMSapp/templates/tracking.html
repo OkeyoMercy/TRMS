@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome to My Project</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+</head>
+<body>
+    <div id="map" style="height: 400px;"></div>
+
+
+</body>
+</html>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    var map = L.map('map').setView([14.0860746, 100.608406], 6);
+
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a> contributors'
+    })
+    .addTo(map);
+    if (!navigator.geolocation){
+        console.log("your browser doesnt support geolocation feature")
+    } else {
+        setInterval (() =>{
+            navigator.geolocation.getCurrentPosition(getPosition)
+
+        }, 5000);
+    }
+    var marker, circle; 
+    function getPosition(position) {
+            console.log(position);
+            var lat =position.coords.latitude
+            var long = position.coords.longitude
+            var accuracy = position.coords.accuracy
+            var marker = L.marker([lat, long]).addTo(map)
+            var circle = L.circle([lat, long], {radius:accuracy}).addTo(map)
+
+            if (marker){
+                map.removeLayer(marker)
+            }
+            if (circle){
+                map.removeLayer(circle)
+            }
+            var featureGroup = L.featureGroup([marker, circle]).addTo(map)
+            map.fitBounds(featureGroup.getBounds())
+            console.log("Your coordinates are : lat; " +lat +" long;"+ long +" accuracy"+accuracy)
+          }
+    osm.on('tileerror', function(error, tile) {
+        console.error('Error loading tile:', tile, error);
+    });
+    
+</script>
+   

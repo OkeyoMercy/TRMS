@@ -20,5 +20,9 @@ urlpatterns = [
     path('messages/', messages_view, name='messages'),
     path('send_message/<int:recipient_id>/', views.send_message, name='send_message'),
     path('best-route/', views.display_best_route, name='display_best_route'),
+    path('tracking/', views.track, name='track'),
+    path('find-route/', views.find_best_route, name='find_best_route'),
+    path('find_best_route/', views.find_best_route, name='find_best_route'),
+    path('update-weather/<int:route_id>/', views.update_weather_for_route, name='update_weather_for_route'),
 ]  
 

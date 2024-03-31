@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 import os
 from pathlib import Path
+from django.conf import settings
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,7 +29,8 @@ SECRET_KEY = 'django-insecure-2$^cpk1*i2@_rufx0vkdzply(0+jc(-p_c0immsn&a@lqtqob_
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+MAPBOX_API_KEY = 'your_mapbox_api_key_here'
+OPENWEATHER_API_KEY = 'your_openweather_api_key_here'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer'

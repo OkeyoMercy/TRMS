@@ -21,7 +21,7 @@ header {
 }
 
 .dropbtn {
-    background-color: #333;
+    background-color:#4cae4c ;
     color: #fff;
     padding: 10px 15px;
     font-size: 16px;
@@ -103,6 +103,7 @@ nav a {
 }
 
 .profile {
+    object-fit: cover;
     max-width: 800px;
     margin: 20px auto;
     background: #fff;
@@ -189,6 +190,6 @@ button {
 }
 
 button:hover {
-    background-color: #4cae4c;
+    background-color:#9d16dc ;
 }
 
