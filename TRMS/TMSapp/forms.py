@@ -73,7 +73,6 @@ class CompanyManagerForm(forms.ModelForm):
     manager_driving_license_number = forms.CharField(max_length=20)
     manager_id_number = forms.CharField(max_length=20)
     manager_title = forms.CharField(widget=forms.TextInput(attrs={'readonly': True}), initial='Manager')
-    manager_region = forms.CharField(max_length=100)
 
     class Meta:
         model = Company
