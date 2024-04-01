@@ -1,8 +1,13 @@
 from django.conf import settings
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
-                                        PermissionsMixin)
+                                        PermissionsMixin, User)
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
+from TMSapp.utils import calculate_route_score
+
+default_image_path = settings.STATIC_URL + 'assets/img/faces/avatar.jpg'
 
 
 class CustomUserManager(BaseUserManager):
@@ -53,6 +58,7 @@ class Manager(CustomUser):
 
     def __str__(self):
         return f"Manager: {self.get_full_name()}"
+    
 class Message(models.Model):
     sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
     recipient = models.ForeignKey(CustomUser, related_name='received_messages', on_delete=models.CASCADE)
@@ -63,6 +69,14 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.get_full_name()} to {self.recipient.get_full_name()}"
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.sender} to {self.recipient} at {self.timestamp}'
+
 class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -97,3 +111,42 @@ class Driver(CustomUser):
 
     def __str__(self):
         return f"Driver: {self.get_full_name()} - {self.driving_license_number}"
+class YourModel(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+
+    def __str__(self):
+        return self.name
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+    else:
+        instance.profile.save()
+        
+
+class Route(models.Model):
+    start_location = models.CharField(max_length=255)
+    end_location = models.CharField(max_length=255)
+    distance = models.FloatField()  # Distance in kilometers or miles
+    def get_best_route(start_location, end_location):
+        # Example pseudocode
+        routes = Route.objects.filter(start_location=start_location, end_location=end_location)
+        best_route = None
+        best_score = 0
+        for route in routes:
+            # Score routes based on distance, weather, and road conditions
+            score = calculate_route_score(route)
+            if score > best_score:
+                best_score = score
+                best_route = route
+        return best_route
+class Weather(models.Model):
+    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    condition = models.CharField(max_length=255)  # e.g., "Sunny", "Rainy", etc.
+    # More fields as necessary
+
+class RoadCondition(models.Model):
+    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    condition = models.CharField(max_length=255)

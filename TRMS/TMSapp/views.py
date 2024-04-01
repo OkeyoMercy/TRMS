@@ -1,18 +1,26 @@
+import logging
+
+import requests
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.core.mail import send_mail
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views import generic
-from django.views.generic.edit import CreateView
+from django.views.generic import CreateView
 
 from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
-                    TMSAdministratorCreationForm)
-from .models import Company, Driver, Manager, Message, Task
+                    MessageForm, ProfileForm, TMSAdministratorCreationForm)
+from .models import (Company, Driver, Manager, Message, Profile, RoadCondition,
+                     Route, Task, User, Weather)
 
+logger = logging.getLogger(__name__)
 
 def login_view(request):
     if request.method == 'POST':
@@ -130,6 +138,41 @@ def compose_message(request):
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'inbox.html', {'received_messages': received_messages})
+def profile(request):
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    if request.method == 'POST':
+        form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid ():
+            form.save()
+            username = request.user.username
+            messages.success(request, f'{username}, Your profile is updated.')
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance= request.user.profile)
+    context = {'form':form}
+    return render (request,'driver.html', context)
+def compose_message(request):
+    admin_users = User.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
+
+    if request.method == 'POST':
+        body = request.POST.get('body')
+        recipient_id = request.POST.get('recipient_id')
+
+        try:
+            recipient = User.objects.get(id=recipient_id)
+            Message.objects.create(sender=request.user, recipient=recipient, body=body)
+            messages.success(request, 'Message sent successfully.')
+            return redirect('inbox')
+        except User.DoesNotExist:
+            messages.error(request, 'Recipient not found.')
+            return redirect('inbox')  # Adjust the redirect as necessary
+
+    return render(request, 'compose_message.html')
+
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
 
 @login_required
 def tasks_view(request):
@@ -142,37 +185,146 @@ def messages_view(request):
     return render(request, 'messages.html', {'received_messages': received_messages})
 
 
-class TMSAdministratorCreateView(CreateView):
-    form_class = TMSAdministratorCreationForm
-    template_name = 'admin/create_admin.html'
-    success_url = reverse_lazy('admin/create_admin.html')
+@login_required
+def tms_administrator_create_view(request):
+    if request.method == 'POST':
+        form = TMSAdministratorCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Administrator registered successfully.')
+            return redirect('admin:add_tms_admin')
+    else:
+        form = TMSAdministratorCreationForm()
+    return render(request, 'admin/create_admin.html', {'form': form})
 
-    def form_valid(self, form):
-        form.save()
-        messages.success(self.request, 'Administrator registered successfully.')
-        return super(TMSAdministratorCreateView, self).form_valid(form)
+
+@login_required
+def company_creation_view(request):
+    if request.method == 'POST':
+        form = CompanyManagerForm(request.POST, request.FILES)
+        if form.is_valid():
+            company = form.save()
+            messages.success(request, 'Company and Manager registered successfully.')
+            return redirect('admin:register_company')
+    else:
+        form = CompanyManagerForm()
+    return render(request, 'admin/register_company.html', {'form': form})
+
+@login_required
+def driver_registration_view(request):
+    if request.method == 'POST':
+        form = DriverRegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            driver = form.save(commit=False)
+            # Assuming the manager profile is linked to the user via a OneToOneField or ForeignKey
+            manager_profile = Manager.objects.get(user=request.user)
+            driver.company = manager_profile.company_managed
+            driver.save()
+            # Assuming you want to add the driver to a group or set other attributes
+            # Your additional logic here
+            messages.success(request, 'Driver registered successfully.')
+            return redirect('manager:register_driver')  # Adjust the redirect as needed
+    else:
+        form = DriverRegistrationForm()
+    return render(request, 'manager/register_driver.html', {'form': form})
+
+def send_message_to_admin(request):
+    logger.debug("Attempting to send a message to admin.")
+    admin_users = User.objects.filter(is_superuser=True)
+    if request.method == 'POST':
+        form = MessageForm(request.POST)
+        if form.is_valid():
+            # Fetch the admin user. Adjust this according to how you identify admins.
+            admin_user = User.objects.filter(is_superuser=True).first()
+            if admin_user:
+                message = form.save(commit=False)
+                message.sender = request.user  # Set the sender to the current user
+                message.recipient = admin_user  # Set the recipient to the admin user
+                message.save()
+                return redirect('message_sent_success')  # Redirect to a success page
+            else:
+                logger.warning("Attempted to send message to admin, but no admin user found.")          
+                pass
+    else:
+        form = MessageForm()
+    return render(request, 'send_message_to_admin.html', {'form': form})
+
+def admin_inbox(request):
+    if request.user.is_superuser:
+        inbox_messages = Message.objects.filter(recipient=request.user)
+        return render(request, 'admin_inbox.html', {'inbox_messages': inbox_messages})
+    else:
+        # Redirect the user to the home page or another appropriate page
+        return HttpResponseForbidden("You are not authorized to view this page.")
+def send_notification(sender, instance, created, **kwargs):
+    if created:
+        send_mail(
+            'New Message',
+            f'You have a new message from {instance.sender.username}.',
+            'from@example.com',
+            [instance.recipient.email],
+            fail_silently=False,
+        )
+        
+@login_required
+def inbox(request):
+    received_messages = Message.objects.filter(recipient=request.user)
+    sent_messages = Message.objects.filter(sender=request.user)
+    users = User.objects.exclude(id=request.user.id)
+    return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users})
+
+@login_required
+def send_message(request, recipient_id):
+    if request.method == 'POST':
+        recipient = User.objects.get(id=recipient_id)
+        content = request.POST.get('content', '')
+        message = Message.objects.create(sender=request.user, recipient=recipient, content=content)
+        return render(request, 'send_messages.html', {'message_sent': True, 'recipient_id': recipient_id})
+    # Added the following for debugging
+    print("Recipient ID:", recipient_id)
+    return render(request, 'send_messages.html', {'recipient_id': recipient_id})
 
 
-class CompanyCreationView(CreateView):
-    model = Company
-    form_class = CompanyManagerForm
-    template_name = 'admin/register_company.html'
-    success_url = reverse_lazy('admin/register_company.html')
+def update_weather_for_route(route):
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={route.end_location}&appid={settings.OPENWEATHER_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+    # Parse the data and update the Weather model
+    weather_condition = data['weather'][0]['main']  # Simplified example
+    Weather.objects.update_or_create(route=route, defaults={'condition': weather_condition})
 
-    def form_valid(self, form):
-        form.save()
-        messages.success(self.request, 'Company and Manager registered successfully.')
-        return super(CompanyCreationView, self).form_valid(form)
-    
-class DriverRegistrationView(LoginRequiredMixin, CreateView):
-    model = Driver
-    form_class = DriverRegistrationForm
-    template_name = 'manager/register_driver.html'
-    success_url = reverse_lazy('manager/register_driver.html')
+def display_best_route(request):
+    if request.method == 'GET':
+        start_location = request.GET.get('start')
+        end_location = request.GET.get('end')
 
-    def form_valid(self, form):
-        driver = form.save(commit=False)
-        manager_profile = Manager.objects.get(user=self.request.user)
-        driver.company = manager_profile.company_managed
-        driver.save()
-        return super().form_valid(form)
+        # Fetch routes that match the start and end locations
+        potential_routes = Route.objects.filter(start_location=start_location, end_location=end_location)
+
+        if not potential_routes.exists():
+            return HttpResponse("No routes found for the specified locations.", status=404)
+
+        best_route = None
+        best_route_score = float('inf')
+
+        for route in potential_routes:
+            try:
+                weather = Weather.objects.get(route=route)
+                road_condition = RoadCondition.objects.get(route=route)
+            except (Weather.DoesNotExist, RoadCondition.DoesNotExist):
+                continue  # Skip this route if weather or road condition data is missing
+
+            score = route.distance  # Base score on distance
+            if weather.condition == 'Good':
+                score -= 10  # Better score for good weather
+            if road_condition.condition == 'Good':
+                score -= 10  # Better score for good road condition
+
+            if score < best_route_score:
+                best_route_score = score
+                best_route = route
+
+        if not best_route:
+            return HttpResponse("Unable to determine the best route with the available data.", status=404)
+
+        return render(request, 'best_route.html', {'route': best_route})

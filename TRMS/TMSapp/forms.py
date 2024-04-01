@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 
-from .models import Company, Driver, Manager, Profile
+from .models import Company, Driver, Manager, Message, Profile
 
 User = get_user_model()
 class LoginForm(forms.Form):
@@ -72,15 +72,14 @@ class CompanyManagerForm(forms.ModelForm):
     manager_email = forms.EmailField(required=True)
     manager_driving_license_number = forms.CharField(max_length=20)
     manager_id_number = forms.CharField(max_length=20)
-    manager_title = forms.CharField(max_length=100, initial='Manager')
+    manager_title = forms.CharField(widget=forms.TextInput(attrs={'readonly': True}), initial='Manager')
     manager_region = forms.CharField(max_length=100)
 
     class Meta:
         model = Company
-        fields = ['name', 'address', 'region', 'county', 'manager_first_name',
-                  'manager_last_name', 'manager_middle_name', 'manager_email',
-                  'manager_driving_license_number', 'manager_id_number', 'manager_title',
-                  'manager_region']
+        fields = ['manager_first_name','manager_middle_name', 'manager_last_name', 'manager_email',
+                  'manager_driving_license_number', 'manager_id_number', 'manager_title'
+                  ]
 
     def clean_manager_id_number(self):
         id_number = self.cleaned_data['manager_id_number']
@@ -129,8 +128,6 @@ def save(self, commit=True):
         )
 
     return company
-
-
 class DriverRegistrationForm(forms.ModelForm):
     class Meta:
         model = Driver
@@ -138,4 +135,9 @@ class DriverRegistrationForm(forms.ModelForm):
         widgets = {
             'profile_image': forms.FileInput(),
         }
+        
+class MessageForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['sender','recipient']
 

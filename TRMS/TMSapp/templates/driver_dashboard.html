@@ -1,0 +1,31 @@
+<!-- driver_profile.html -->
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ driver.user.username }}'s Profile</title>
+    <link rel="stylesheet" href="{% static 'C:\Users\user\Desktop\TRMS\TRMS\TRMS\static\assets\css\styles\style.css' %}">
+    <nav>
+        <div class="dropdown">
+            <button class="dropbtn">ALERTS</button>
+            <div class="dropdown-content">
+                {% comment %} <a href="{% url 'driver_profile' user_id=request.user.id%}">Profile</a> {% endcomment %}
+                
+                <ul>
+                    <li><a href="{% url 'tasks' %}">Tasks</a></li>
+                    <li><a href="{% url 'messages' %}">Messages</a></li>
+                    <!-- Add other menu items as needed -->
+                </ul>
+            </div>
+        </div>
+    </nav>   
+        <h2>Tasks</h2>
+        <ul>
+            {% for task in tasks %}
+                <li>{{ task.title }} - {{ task.day }} at {{ task.time }}</li>
+            {% endfor %}
+        </ul>
+</head>
+<body>
+</body>
+</html>

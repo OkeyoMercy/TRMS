@@ -3,5 +3,5 @@ from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('TMSapp.urls')),
+    path('', include('TMSapp.urls')),  # Include TMSapp URLs at the root path
 ]
