@@ -24,7 +24,6 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(id_number, password, **extra_fields)
 
-
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     first_name = models.CharField(max_length=150)
@@ -34,6 +33,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     driving_license_number = models.CharField(max_length=20, unique=True)
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
     region = models.CharField(max_length=100)
+    role =models.CharField(max_length=30)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
@@ -49,15 +49,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
-    profile_image = models.ImageField(upload_to='profile_pics/', default='default.jpg')
+    profile_image = models.ImageField(upload_to='profile_pics/', default='profile_pics/user_profile_pic.png')
 
     def __str__(self):
         return f"{self.user.get_full_name()}'s Profile"
-class Manager(CustomUser):
-    title = models.CharField(max_length=50, default='Manager')
-
-    def __str__(self):
-        return f"Manager: {self.get_full_name()}"
     
 class Message(models.Model):
     sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
@@ -92,7 +87,7 @@ class Company(models.Model):
     address = models.TextField()
     region = models.CharField(max_length=100)
     county = models.CharField(max_length=100)
-    manager = models.OneToOneField(Manager, on_delete=models.CASCADE, related_name='company_managed')
+    manager = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='managed_company')
 
     def __str__(self):
         return f"Company: {self.name}"
@@ -105,9 +100,8 @@ class Vehicle(models.Model):
     def __str__(self):
         return f"{self.make} {self.model} ({self.registration_number})"
 class Driver(CustomUser):
-    title = models.CharField(max_length=50, default='Driver')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='drivers')
     vehicle_assigned = models.OneToOneField(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_driver')
-    # Add other fields specific to drivers here
 
     def __str__(self):
         return f"Driver: {self.get_full_name()} - {self.driving_license_number}"

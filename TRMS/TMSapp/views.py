@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseForbidden
@@ -17,8 +18,8 @@ from django.views.generic import CreateView
 
 from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
                     MessageForm, ProfileForm, TMSAdministratorCreationForm)
-from .models import (Company, Driver, Manager, Message, Profile, RoadCondition,
-                     Route, Task, User, Weather)
+from .models import (Company, CustomUser, Driver, Message, Profile,
+                     RoadCondition, Route, Task, User, Weather)
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +166,7 @@ def compose_message(request):
             return redirect('inbox')
         except User.DoesNotExist:
             messages.error(request, 'Recipient not found.')
-            return redirect('inbox')  # Adjust the redirect as necessary
+            return redirect('inbox')
 
     return render(request, 'compose_message.html')
 
@@ -199,33 +200,39 @@ def tms_administrator_create_view(request):
 
 
 @login_required
+@transaction.atomic
 def company_creation_view(request):
+    if not request.user.groups.filter(name='TMS Administrator').exists():
+        return HttpResponseForbidden("You don't have permission to access this page.")
     if request.method == 'POST':
         form = CompanyManagerForm(request.POST, request.FILES)
         if form.is_valid():
-            company = form.save()
+            form.save()
             messages.success(request, 'Company and Manager registered successfully.')
-            return redirect('admin:register_company')
+            return redirect('add_company')
     else:
         form = CompanyManagerForm()
     return render(request, 'admin/register_company.html', {'form': form})
 
 @login_required
 def driver_registration_view(request):
+    if not (request.user.role == 'Manager' and hasattr(request.user, 'managed_company')):
+        return HttpResponseForbidden("You are not authorized to perform this action.")
+    try:
+        company = Company.objects.get(manager=request.user)
+    except Company.DoesNotExist:
+        messages.error(request, "No associated company found for this manager.")
+        return HttpResponseForbidden("You don't have permission to access this page.")
     if request.method == 'POST':
-        form = DriverRegistrationForm(request.POST, request.FILES)
+        form = DriverRegistrationForm(request.POST, request.FILES, company=company)
         if form.is_valid():
             driver = form.save(commit=False)
-            # Assuming the manager profile is linked to the user via a OneToOneField or ForeignKey
-            manager_profile = Manager.objects.get(user=request.user)
-            driver.company = manager_profile.company_managed
+            driver.company = company
             driver.save()
-            # Assuming you want to add the driver to a group or set other attributes
-            # Your additional logic here
             messages.success(request, 'Driver registered successfully.')
-            return redirect('manager:register_driver')  # Adjust the redirect as needed
+            return redirect('add_driver')
     else:
-        form = DriverRegistrationForm()
+        form = DriverRegistrationForm(company=company)
     return render(request, 'manager/register_driver.html', {'form': form})
 
 def send_message_to_admin(request):

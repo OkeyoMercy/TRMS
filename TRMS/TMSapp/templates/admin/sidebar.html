@@ -2,15 +2,7 @@
 
 <div class="sidebar" data-color="purple" data-background-color="white" data-image="/static/assets/img/sidebar-1.jpg">
     <div class="logo" style="text-align: center; white-space: pre-wrap;">
-        <!-- Profile photo display area -->
-        {% comment %} <div class="profile-photo">
-            {% if request.user.profile.photo %}
-                <img src="{{ request.user.profile.photo.url }}" alt="Profile Photo" class="img-fluid rounded-circle" style="width: 100px; height: 100px; margin: 0 auto;">
-            {% else %}
-                <!-- Reference to the default user icon stored in static files -->
-                <img src="{% static 'admin/user_profile_pic.png' %}" alt="Default Profile Photo" class="img-fluid rounded-circle" style="width: 100px; height: 100px; margin: 0 auto;">
-            {% endif %}
-        </div> {% endcomment %}
+
         <a target="_blank" rel="noopener noreferrer" class="simple-text logo-normal">
             Transport Management<br>System (TMS)
         </a>
