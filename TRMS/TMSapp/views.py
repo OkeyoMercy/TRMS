@@ -212,7 +212,8 @@ def company_creation_view(request):
             return redirect('add_company')
     else:
         form = CompanyManagerForm()
-    return render(request, 'admin/register_company.html', {'form': form})
+    return render(request, 'add_company', {'form': form})
+
 
 @login_required
 def driver_registration_view(request):

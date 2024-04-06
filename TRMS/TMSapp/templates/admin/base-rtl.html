@@ -1,14 +1,13 @@
+
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="fa" dir="rtl">
 <head>
-
   <meta charset="utf-8" />
   <link rel="apple-touch-icon" sizes="76x76" href="/static/assets/img/apple-icon.png">
   <link rel="icon" type="image/png" href="/static/assets/img/favicon.png">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <link rel="canonical" href="https://appseed.us/admin-dashboards/django-dashboard-material">
-
+  
   <title>
     Transport Management System. - {% block title %}{% endblock %} | TMS
   </title>
@@ -16,9 +15,14 @@
   <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
   <!--     Fonts and icons     -->
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700|Material+Icons" />
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css">
+
+  <!-- Markazi Text font include just for persian demo purpose, don't include it in your project -->
+  <link href="https://fonts.googleapis.com/css?family=Cairo&amp;subset=arabic" rel="stylesheet">
+
   <!-- CSS Files -->
   <link href="/static/assets/css/material-dashboard.css?v=2.1.2" rel="stylesheet" />
+  <link href="/static/assets/css/material-dashboard-rtl.css?v=1.1" rel="stylesheet" />
+
   <!-- CSS Just for demo purpose, don't include it in your project -->
   <link href="/static/assets/demo/demo.css" rel="stylesheet" />
 
@@ -30,34 +34,32 @@
 <body class="">
   <div class="wrapper ">
 
-    {% include 'includes/sidebar.html' %}
+    {% include 'admin/sidebar-rtl.html' %}
 
     <div class="main-panel">
 
-      {% include 'includes/navigation.html' %}
+      {% include 'admin/navigation-rtl.html' %}
 
       <!-- End Navbar -->
       <div class="content">
         <div class="container-fluid">
 
+          {% block content %}{% endblock content %}
+
         </div>
       </div>
 
-      {% include 'includes/footer.html' %}
+      {% include 'admin/footer.html' %}
 
     </div>
   </div>
 
-  {% include 'includes/fixed-plugin.html' %}
+  {% include 'admin/fixed-plugin.html' %}
 
-  {% include 'includes/scripts.html' %}
+  {% include 'admin/scripts.html' %}
 
-  {% include 'includes/scripts-sidebar.html' %}
-
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
+  {% include 'admin/scripts-sidebar.html' %}
+  
   <!-- Specific Page JS goes HERE  -->
   {% block javascripts %}{% endblock javascripts %}
   
