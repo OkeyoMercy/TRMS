@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-2$^cpk1*i2@_rufx0vkdzply(0+jc(-p_c0immsn&a@lqtqob_
 DEBUG = True
 
 ALLOWED_HOSTS = []
-MAPBOX_API_KEY = 'your_mapbox_api_key_here'
+GEOAPIFY_API_KEY = '3137326edb344c3ab9f7745c2aa5d75a'
 OPENWEATHER_API_KEY = 'your_openweather_api_key_here'
 CHANNEL_LAYERS = {
     'default': {

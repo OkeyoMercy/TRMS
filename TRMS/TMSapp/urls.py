@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import compose_message, inbox
+from .views import compose_message, inbox, route_view
 from .views import tasks_view, messages_view
 from django.contrib.auth import views as auth_views
 
@@ -24,5 +24,7 @@ urlpatterns = [
     path('find-route/', views.find_best_route, name='find_best_route'),
     path('find_best_route/', views.find_best_route, name='find_best_route'),
     path('update-weather/<int:route_id>/', views.update_weather_for_route, name='update_weather_for_route'),
+    path('route/', views.route_view, name='route_view'),
+    path('get-route/', views.get_route, name='get_route'),
 ]  
 

@@ -97,31 +97,170 @@
         <p>No suitable route found.</p>
     {% endif %}
 {% endblock %}
-    {% comment %} <h1>{{ driver.user.username }}'s Profile</h1>
-    <img src="{{ driver.profile_pic.url }}" alt="Profile Picture">
-    <p>Email: {{ driver.user.email }}</p>
-    <p>Bio: {{ driver.bio }}</p> {% endcomment %}
-    <!-- Other personal information -->
+   
     <li><a href="{% url 'track' %}">VIEW MAP</a></li>
-
- 
-
-{% comment %} {% for driver in drivers %}
-    {% if driver.user and driver.user.id %}
-        <!-- If the driver has a profile, link to the update page -->
-        <a href="{% url 'update_driver_profile' driver.user.id %}">Update Profile</a>
-    {% else %}
-        <!-- If the driver doesn't have a profile, link to the create page -->
-        <a href="{% url 'create_driver_profile' %}">Create Profile</a>
-    {% endif %}
-{% endfor %} {% endcomment %}
-
-    <!-- Form to send message to superuser (simplified example) -->
-    {% comment %} <form method="post" action="{% url 'send_message' %}">
-        {% csrf_token %}
-        <textarea name="message" placeholder="Send a message to the superuser"></textarea>
-        <button type="submit">Send Message</button>
-    </form> {% endcomment %}
+<h1>Route Information</h1>
+<div id="route-info"></div>
+<script>
+    var requestOptions = {
+        method: 'GET',
+      };
+    const fromWaypoint = [38.937165,-77.045590]; // latutude, longitude
+    const toWaypoint = [38.881152,-76.990693]; 
+    fetch("https://api.geoapify.com/v1/routing?waypoints=50.96209827745463%2C4.414458883409225%7C50.429137079078345%2C5.00088081232559&mode=drive&apiKey=3137326edb344c3ab9f7745c2aa5d75a", requestOptions)
+        .then(response => response.json())
+        .then(result => {
+            console.log(result);
+            // Process the result and update the DOM accordingly
+            const routeInfoDiv = document.getElementById('route-info');
+            routeInfoDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+          })
+          .catch(error => console.log('error', error));
+         L.geoJSON(routeResult, {
+            style: (feature) => {
+              return {
+                color: "rgba(20, 137, 255, 0.7)",
+                weight: 5
+              };
+            }
+          }).bindPopup((layer) => {
+            return `${layer.feature.properties.distance} ${layer.feature.properties.distance_units}, ${layer.feature.properties.time}`
+          }).addTo(map);
+          const turnByTurns = []; // collect all transitions
+          routeResult.features.forEach(feature => feature.properties.legs.forEach((leg, legIndex) => leg.steps.forEach(step => {
+            const pointFeature = {
+              "type": "Feature",
+              "geometry": {
+                "type": "Point",
+                "coordinates": feature.geometry.coordinates[legIndex][step.from_index]
+              },
+              "properties": {
+                "instruction": step.instruction.text
+              }
+            }
+            turnByTurns.push(pointFeature);
+          })));
+          
+          L.geoJSON({
+            type: "FeatureCollection",
+            features: turnByTurns
+          }, {
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, turnByTurnMarkerStyle);
+            }
+          }).bindPopup((layer) => {
+            return `${layer.feature.properties.instruction}`
+          }).addTo(map);
+          map.addSource('route', {
+            type: 'geojson',
+            data: routeResult
+          });
+          
+          map.addLayer({
+            'id': 'route-layer',
+            'type': 'line',
+            'source': 'route',
+            'layout': {
+              'line-cap': "round",
+              'line-join': "round"
+            },
+            'paint': {
+              'line-color': "#6084eb",
+              'line-width': 8
+            },
+            'filter': ['==', '$type', 'LineString']
+          });
+          const steps = [];
+          routeResult.features[0].properties.legs.forEach((leg, legIndex) => {
+            const legGeometry = routeData.features[0].geometry.coordinates[legIndex];
+            leg.steps.forEach((step, index) => {
+              if (step.from_index === step.to_index) {
+                // destination point
+                return;
+              }
+          
+              const stepGeometry = legGeometry.slice(step.from_index, step.to_index + 1);
+              steps.push({
+                "type": "Feature",
+                  "geometry": {
+                  "type": "LineString",
+                  "coordinates": stepGeometry
+                },
+                properties: step
+              });
+            });
+          });
+               
+    </script>
+    {% comment %} <div id="route-summary">
+        <h2>Route Summary</h2>
+        <p>Total Distance: <span id="total-distance"></span> km</p>
+        <p>Total Time: <span id="total-time"></span> minutes</p>
+    </div>
+    
+    <div id="route-instructions">
+        <h2>Step-by-Step Instructions</h2>
+        <ol id="instructions-list"></ol>
+    </div>
+     {% endcomment %}
+    <!-- Optional: div for map display -->
+    <div id="map" style="width: 100%; height: 400px;"></div>
+    <h1>Find a Route</h1>
+    <form id="routeForm">
+        Start: <input type="text" id="start" name="start">
+        End: <input type="text" id="end" name="end">
+        <button type="submit">Get Route</button>
+    </form>
+    <div id="routeInfo"></div>
+    <script>
+      document.getElementById('routeForm').addEventListener('submit', function(e) {
+          e.preventDefault();
+          var start = document.getElementById('start').value;
+          var end = document.getElementById('end').value;
+          fetch(`/myapp/get_route/?start=${start}&end=${end}`)
+              .then(response => response.json())
+              .then(data => {
+                  document.getElementById('routeInfo').textContent = JSON.stringify(data, null, 2);
+              });
+      });
+  </script>
+  
+    <script>
+        // Example: Parse and display route data passed from Django view
+        const routeData = {{ route_data|safe }};
+    
+        document.getElementById('total-distance').innerText = (routeData.features[0].properties.distance / 1000).toFixed(2);
+        document.getElementById('total-time').innerText = (routeData.features[0].properties.time / 60).toFixed(2);
+    
+        const instructionsList = document.getElementById('instructions-list');
+        routeData.features[0].properties.legs[0].steps.forEach(step => {
+            const li = document.createElement('li');
+            li.innerText = `${step.instruction.text} - ${step.distance} meters`;
+            instructionsList.appendChild(li);
+        });
+    
+        // Optional: Initialize and display the map using Geoapify or another map service
+    </script>
+    <h1>Find a Route</h1>
+    <form id="routeForm">
+        Start: <input type="text" id="start" name="start">
+        End: <input type="text" id="end" name="end">
+        <button type="submit">Get Route</button>
+    </form>
+    <div id="routeInfo"></div>
+    <script>
+      document.getElementById('routeForm').addEventListener('submit', function(e) {
+          e.preventDefault();
+          var start = document.getElementById('start').value;
+          var end = document.getElementById('end').value;
+          fetch(`/myapp/get_route/?start=${start}&end=${end}`)
+              .then(response => response.json())
+              .then(data => {
+                  document.getElementById('routeInfo').textContent = JSON.stringify(data, null, 2);
+              });
+      });
+  </script>
+  
     <footer>
         <p>Copyright © Your Company | All rights reserved</p>
     </footer>

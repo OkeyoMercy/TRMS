@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import router
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 import requests
@@ -238,7 +238,7 @@ def calculate_best_route(request):
     destination = request.GET.get('destination')
     
     # Fetch routes using a third-party API
-    routes = fetch_routes(origin, destination, 'your_api_key_here')
+    routes = fetch_routes(origin, destination, settings.MAPBOX_API_KEY)
 
     best_route = None
     best_score = None
@@ -360,3 +360,52 @@ def find_best_route(request):
         return render(request, 'best_route.html', context)
     else:
         return HttpResponse("Unable to determine the best route.")
+
+def route_view(request):
+    context = {}
+
+    # Only proceed if both start and end locations are provided
+    if 'start' in request.GET and 'end' in request.GET:
+        start = request.GET['start']
+        end = request.GET['end']
+    url = "https://api.geoapify.com/v1/routing?waypoints=50.96209827745463%2C4.414458883409225%7C50.429137079078345%2C5.00088081232559&mode=drive&apiKey=3137326edb344c3ab9f7745c2aa5d75a"
+
+    response = requests.get(url)
+    if response.status_code == 200:
+            # Add the route data to the context
+            context['route_data'] = response.json()
+    else:
+            context['error'] = "Failed to retrieve the route"
+
+    return render(request, 'driver.html', context)
+
+# def get_route(request):
+#     api_key = '3137326edb344c3ab9f7745c2aa5d75a'
+#     start = 'start_point_longitude,start_point_latitude'  # Example: '13.388860,52.517037'
+#     end = 'end_point_longitude,end_point_latitude'  # Example: '13.397634,52.529407'
+#     base_url = f'https://api.geoapify.com/v1/routing?waypoints={start}|{end}&mode=drive&apiKey={api_key}'
+
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         route_data = response.json()
+#         return render(request, 'driver.html', {'route_data': route_data})
+#     else:
+#         return JsonResponse({'error': 'Failed to fetch route data'}, status=500)
+def get_route(request):
+    api_key = settings.GEOAPIFY_API_KEY  # Assuming you've added this in your settings.py
+    start = request.GET.get('start', 'default_start')  # Replace 'default_start' with a default or error handling
+    end = request.GET.get('end', 'default_end')  # Replace 'default_end' with a default or error handling
+    
+    base_url = f'https://api.geoapify.com/v1/routing?waypoints={start}|{end}&mode=drive&apiKey={api_key}'
+
+    response = requests.get(base_url)  # Use 'base_url' instead of 'url'
+    if response.status_code == 200:
+        route_data = response.json()
+        
+        # Additional error handling for API-specific errors
+        if route_data.get('error'):
+            return JsonResponse({'error': 'Failed to fetch route data due to API error'}, status=500)
+        
+        return render(request, 'driver.html', {'route_data': route_data})
+    else:
+        return JsonResponse({'error': 'Failed to fetch route data'}, status=response.status_code)
