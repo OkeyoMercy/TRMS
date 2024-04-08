@@ -1,18 +1,13 @@
 from django.conf import settings
-<<<<<<< HEAD
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
-                                        PermissionsMixin)
+                                        PermissionsMixin, User)
 from django.db import models
-from django.utils.translation import gettext_lazy as _
-=======
 from django.db.models.signals import post_save
-from django.contrib.auth.models import User
 from django.dispatch import receiver
-
-from TRMS.TRMS.TMSapp.views import calculate_route_score
+from django.utils.translation import gettext_lazy as _
+from TMSapp.utils import calculate_route_score
 
 default_image_path = settings.STATIC_URL + 'assets/img/faces/avatar.jpg'
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205
 
 
 class CustomUserManager(BaseUserManager):
@@ -29,7 +24,6 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(id_number, password, **extra_fields)
 
-
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     first_name = models.CharField(max_length=150)
@@ -39,6 +33,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     driving_license_number = models.CharField(max_length=20, unique=True)
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
     region = models.CharField(max_length=100)
+    role =models.CharField(max_length=30)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
@@ -53,30 +48,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 class Profile(models.Model):
-<<<<<<< HEAD
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
-    profile_image = models.ImageField(upload_to='profile_pics/', default='default.jpg')
+    profile_image = models.ImageField(upload_to='profile_pics/', default='profile_pics/user_profile_pic.png')
 
     def __str__(self):
         return f"{self.user.get_full_name()}'s Profile"
-class Manager(CustomUser):
-    title = models.CharField(max_length=50, default='Manager')
-=======
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, null =True)
-    bio = models.TextField(blank=True)
-    profile_image = models.ImageField( blank=True,default='static/assets/img/faces/avatar.jpg')
-
-    def __str__(self):
-        return "{self.user.username} 's profile"
     
-
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205
-
-    def __str__(self):
-        return f"Manager: {self.get_full_name()}"
 class Message(models.Model):
-<<<<<<< HEAD
     sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
     recipient = models.ForeignKey(CustomUser, related_name='received_messages', on_delete=models.CASCADE)
     subject = models.CharField(max_length=255, default='No Subject')
@@ -86,7 +64,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.get_full_name()} to {self.recipient.get_full_name()}"
-=======
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
     content = models.TextField()
@@ -95,7 +72,6 @@ class Message(models.Model):
     def __str__(self):
         return f'{self.sender} to {self.recipient} at {self.timestamp}'
 
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205
 class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -105,14 +81,13 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
-<<<<<<< HEAD
 
 class Company(models.Model):
     name = models.CharField(max_length=100)
     address = models.TextField()
     region = models.CharField(max_length=100)
     county = models.CharField(max_length=100)
-    manager = models.OneToOneField(Manager, on_delete=models.CASCADE, related_name='company_managed')
+    manager = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='managed_company')
 
     def __str__(self):
         return f"Company: {self.name}"
@@ -125,19 +100,11 @@ class Vehicle(models.Model):
     def __str__(self):
         return f"{self.make} {self.model} ({self.registration_number})"
 class Driver(CustomUser):
-    title = models.CharField(max_length=50, default='Driver')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='drivers')
     vehicle_assigned = models.OneToOneField(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_driver')
-    # Add other fields specific to drivers here
 
     def __str__(self):
         return f"Driver: {self.get_full_name()} - {self.driving_license_number}"
-=======
-class YourModel(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-
-    def __str__(self):
-        return self.name
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
@@ -171,4 +138,3 @@ class Weather(models.Model):
 class RoadCondition(models.Model):
     route = models.ForeignKey(Route, on_delete=models.CASCADE)
     condition = models.CharField(max_length=255)
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205

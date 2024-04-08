@@ -13,10 +13,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -28,13 +26,6 @@ SECRET_KEY = 'django-insecure-2$^cpk1*i2@_rufx0vkdzply(0+jc(-p_c0immsn&a@lqtqob_
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
-    }
-}
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -44,16 +35,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-<<<<<<< HEAD:TRMS/TRMS/settings.py
     'TMSapp.apps.TMSappConfig',  # Your TMS app
     'widget_tweaks',  # Optional app for customizing form widgets
-=======
-    'TMSapp',
-    'channels',
-    'widget_tweaks',
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205:TRMS/TMS/settings.py
 ]
-ASGI_APPLICATION = 'TMS.asgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -83,10 +67,7 @@ TEMPLATES = [
     },
 ]
 
-<<<<<<< HEAD:TRMS/TRMS/settings.py
 WSGI_APPLICATION = 'TRMS.wsgi.application'
-=======
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205:TRMS/TMS/settings.py
 
 
 # Database
@@ -98,8 +79,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -131,14 +110,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-<<<<<<< HEAD:TRMS/TRMS/settings.py
-MEDIA_URL = '/media/'  # Use '/media/' for user-uploaded content (images, etc.)
-=======
-MEDIA_URL = '/images/'
-MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
->>>>>>> 6a5e43fc539af7fb733a47b8464b06852430b205:TRMS/TMS/settings.py
+MEDIA_URL = '/media/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]

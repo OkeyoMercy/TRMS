@@ -10,9 +10,9 @@ from django.contrib.auth.models import Group
 
 def create_user_groups():
     """
-    Creates the following user groups: TMS Administrator, Driver, Manager
+    Creates the following user groups: TMS Adminstrator, Driver, Manager
     """
-    group_names = ["TMS Administrator", "Driver", "Manager"]
+    group_names = ["TMS Adminstrator", "Driver", "Manager"]
 
     for group_name in group_names:
         group, created = Group.objects.get_or_create(name=group_name)

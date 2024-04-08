@@ -1,42 +1,44 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 
 {% block content %}
   <h2>Company and Manager Registration.</h2>
   <form method="post" action="{% url 'add_company' %}">
     {% csrf_token %}
-    
-    <!-- Company Details Section -->
-    <div class="section">
-        <div class="section-header">Company Details</div>
-        {% for field in form %}
-            {% if field.name in "name,address,region,county" %}
-                <div class="form-group">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <small style="display: block;">{{ field.help_text }}</small>
-                    {% endif %}
-                </div>
-            {% endif %}
-        {% endfor %}
+    {% if form.errors %}
+    <div class="form-errors">
+      {{ form.errors }}
     </div>
-    
-    <!-- Manager Details Section -->
+    {% endif %}
+    <div class="section">
+      <div class="section-header">Company Details</div>
+      {% for field in form %}
+        {% if field.name in 'name address region county' %}
+          <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <small style="display: block;">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
     <div class="section">
         <div class="section-header">Manager Details</div>
         {% for field in form %}
-            {% if field.name in "manager_first_name,manager_last_name,manager_middle_name,manager_email,manager_driving_license_number,manager_id_number,manager_title,manager_region" %}
-                <div class="form-group">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <small style="display: block;">{{ field.help_text }}</small>
-                    {% endif %}
-                </div>
-            {% endif %}
+          {% if field.name not in "name address region county manger_region" %}
+            <div class="form-group">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <small style="display: block;">{{ field.help_text }}</small>
+              {% endif %}
+            </div>
+          {% endif %}
         {% endfor %}
-    </div>
-
+      </div>
+      
     <button type="submit" class="submit-btn">Register</button>
-</form>
+  </form>
 {% endblock %}

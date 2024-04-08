@@ -1,56 +1,41 @@
-from django.contrib.auth.models import Group
-from django.db.models.signals import post_save
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 
-from .models import Company, CustomUser, Driver, Manager, Profile
+from .models import Company, CustomUser, Driver
 
 
-@receiver(post_save, sender=CustomUser)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
-    """
-    Signal to create or update a profile whenever a CustomUser is saved.
-    """
-    # Create a profile for newly created users
-    if created:
-        Profile.objects.create(user=instance, id_number=instance.id_number, driving_license_number=instance.driving_license_number)
-    # Update the profile for existing users
-    else:
-        profile = Profile.objects.get_or_create(user=instance)[0]
-        profile.id_number = instance.id_number
-        profile.driving_license_number = instance.driving_license_number
-        profile.save()
-
-@receiver(post_save, sender=CustomUser)
-def assign_user_group(sender, instance, created, **kwargs):
-    """
-    Signal to assign users to groups based on their specific user type.
-    This assumes you have specific user types like 'Manager', 'Driver', etc., identified by their model class.
-    """
-    if created:
-        # Assign to the 'Manager' group if the user instance is a Manager
-        if isinstance(instance, Manager):
-            manager_group, _ = Group.objects.get_or_create(name='Manager')
-            instance.groups.add(manager_group)
-
-        # Assign to the 'Driver' group if the user instance is a Driver
-        elif isinstance(instance, Driver):
-            driver_group, _ = Group.objects.get_or_create(name='Driver')
-            instance.groups.add(driver_group)
-
-        # Assign to the 'TMS Administrator' group if the user is a superuser
-        elif instance.is_superuser:
-            admin_group, _ = Group.objects.get_or_create(name='TMS Administrator')
-            instance.groups.add(admin_group)
-
-@receiver(post_save, sender=Company)
-def assign_manager_to_company(sender, instance, created, **kwargs):
-    """
-    Signal to handle assigning a manager to a company when a company instance is created.
-    """
-    if created and hasattr(instance, 'manager'):
-        # Ensure the manager is assigned to the 'Manager' group
-        manager_group, _ = Group.objects.get_or_create(name='Manager')
-        instance.manager.groups.add(manager_group)
-        instance.manager.save()
-
-# Include any other signals you need for your application
+@receiver(post_migrate)
+def setup_default_groups_and_permissions(sender, **kwargs):
+    
+    ##The TMS Admistrator and their Permissions.
+    admin_group, _=Group.objects.get_or_create(name='TMS Adminstrator')
+    company_content_type = ContentType.objects.get_for_model(Company)
+    customuser_content_type = ContentType.objects.get_for_model(CustomUser)
+    admin_permissions = [
+        'add_company', 'change_company', 'delete_company', 'view_company',
+        'add_customuser', 'change_customuser', 'delete_customuser', 'view_customuser',  # Permissions to manage CustomUser instances
+    ]
+    for permission_codename in admin_permissions:
+        content_type = company_content_type if 'company' in permission_codename else customuser_content_type
+        permission, _ = Permission.objects.get_or_create(
+            codename=permission_codename,
+            content_type=content_type,
+        )
+        admin_group.permissions.add(permission)
+        
+        #The Mnager and their permissions.
+    manager_group, _=Group.objects.get_or_create(name="Manager")
+    driver_content_type = ContentType.objects.get_for_model(Driver)
+    manager_permissions = [
+        'add_driver', 'change_driver', 'view_driver',
+    ]
+    for permission_codename in manager_permissions:
+        permission, _ = Permission.objects.get_or_create(
+            codename=permission_codename,
+            content_type=driver_content_type,
+        )
+        manager_group.permissions.add(permission)
+        
+    

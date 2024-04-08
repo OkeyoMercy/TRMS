@@ -1,30 +1,26 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import ModelForm
-from django.forms.models import ModelForm
 
-from .models import Company, Driver, Manager, Message, Profile
+from .models import Company, CustomUser, Driver, Message, Profile
 
 User = get_user_model()
 class LoginForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Driving License/National Identification Number'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Your Password'}))
-
-class DriverForm(forms.ModelForm):
-    class Meta:
-        model = Driver
-        fields = ['username','national_id']
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
 
 class ProfileForm(ModelForm):
     class Meta:
         model = Profile
-        fields = ['bio', 'profile_image']
+        fields = '__all__'
         exclude = ['user']
 
-class TMSAdministratorCreationForm(UserCreationForm):
+class TMSAdminstratorCreationForm(UserCreationForm):
     id_number = forms.CharField(max_length=20, required=True)
     driving_license_number = forms.CharField(max_length=20, required=True)
     email = forms.EmailField(required=True)
@@ -53,12 +49,12 @@ class TMSAdministratorCreationForm(UserCreationForm):
         return self.cleaned_data['email']
 
     def save(self, commit=True):
-        user = super(TMSAdministratorCreationForm, self).save(commit=False)
+        user = super(TMSAdminstratorCreationForm, self).save(commit=False)
         user.email = self.cleaned_data['email']
 
         if commit:
             user.save()
-            tms_admin_group, _ = Group.objects.get_or_create(name='TMS Administrator')
+            tms_admin_group, _ = Group.objects.get_or_create(name='TMS Adminstrator')
             user.groups.add(tms_admin_group)
 
             # Only create a Profile if not handled by signals
@@ -78,16 +74,22 @@ class CompanyManagerForm(forms.ModelForm):
     manager_email = forms.EmailField(required=True)
     manager_driving_license_number = forms.CharField(max_length=20)
     manager_id_number = forms.CharField(max_length=20)
-    manager_title = forms.CharField(max_length=100, initial='Manager')
-    manager_region = forms.CharField(max_length=100)
+    role = forms.CharField(widget=forms.TextInput(attrs={'readonly': True}), initial='Manager')
 
     class Meta:
         model = Company
-        fields = ['name', 'address', 'region', 'county', 'manager_first_name',
-                  'manager_last_name', 'manager_middle_name', 'manager_email',
-                  'manager_driving_license_number', 'manager_id_number', 'manager_title',
-                  'manager_region']
-
+        fields = ['manager_first_name',
+            'manager_middle_name',
+            'manager_last_name',
+            'manager_email',
+            'manager_driving_license_number',
+            'manager_id_number',
+            'role',
+            'name',
+            'address',
+            'region',
+            'county',
+                  ]
     def clean_manager_id_number(self):
         id_number = self.cleaned_data['manager_id_number']
         if User.objects.filter(id_number=id_number).exists():
@@ -106,51 +108,89 @@ class CompanyManagerForm(forms.ModelForm):
             raise ValidationError("A user with this email already exists.")
         return email
 
-def save(self, commit=True):
-    company = super().save(commit=False)  # Save company data without creating the object yet
-
-    # Create user using CustomUserManager (assuming it's named 'CustomUserManager')
-    username = self.cleaned_data.get('manager_driving_license_number') or self.cleaned_data['manager_id_number']
-    user = User.objects.create_user(
-        id_number=self.cleaned_data['manager_id_number'],
-        email=self.cleaned_data['manager_email'],
-        password='manager',  # Replace with a secure password generation method
-        first_name=self.cleaned_data['manager_first_name'],
-        last_name=self.cleaned_data['manager_last_name'],
-        middle_name=self.cleaned_data.get('manager_middle_name', ''),
-    )
-    user.set_password('manager')  # Needs a secure password generation method (placeholder here)
-    user.save()  # Save the user object
-
-    if commit:
-        company.save()  # Save the company object after user creation
-        manager_group, _ = Group.objects.get_or_create(name='Manager')
-        user.groups.add(manager_group)
-
-        # Create Profile with data from cleaned form data
-        Profile.objects.create(
-            user=user,
-            id_number=self.cleaned_data['manager_id_number'],
-            driving_license_number=self.cleaned_data.get('manager_driving_license_number', '')
-        )
-
-    return company
-
-
+    def save(self, commit=True):
+        with transaction.atomic():
+            company = super().save(commit=False)
+            user , created=CustomUser.objects.get_or_create(
+                email=self.cleaned_data['manager_email'],
+                defaults={
+                'first_name': self.cleaned_data['manager_first_name'],
+                'last_name': self.cleaned_data['manager_last_name'],
+                'middle_name': self.cleaned_data.get('manager_middle_name', ''),
+                'id_number': self.cleaned_data['manager_id_number'],
+                'driving_license_number': self.cleaned_data['manager_driving_license_number'],
+                'role': self.cleaned_data['role']
+            })
+            
+            if created:
+                user.set_password('changeme')
+                user.save()
+                
+            Profile.objects.get_or_create(user=user, defaults={'profile_image':'profile_pics/user_profile_pic.png'})
+            manager_groups, _=Group.objects.get_or_create(name='Manager')
+            user.groups.add(manager_groups)
+        company.manager=user
+        if commit:
+            company.save()
+        return company
 class DriverRegistrationForm(forms.ModelForm):
     class Meta:
-        model = Driver
-        fields = ['id_number', 'phone_number', 'driving_license_number']
-        widgets = {
-            'profile_image': forms.FileInput(),
-        }
+        model = CustomUser
+        fields = ['first_name',
+                  'middle_name',
+                  'last_name',
+                  'id_number',
+                  'driving_license_number',
+                  'email',
+                  'phone_number']
 
-        widgets = {
-            'profile_img': FileInput(),
-            'bio': forms.Textarea(attrs={'rows': 4}),
-        }
-       
+    def __init__(self, *args, **kwargs):
+        self.company = kwargs.pop('company', None)
+        super(DriverRegistrationForm, self).__init__(*args, **kwargs)
+        if not self.company:
+            raise ValueError("Company is required to register a driver.")
+
+    def clean_id_number(self):
+        id_number = self.cleaned_data['id_number']
+        if CustomUser.objects.filter(id_number=id_number).exists():
+            raise ValidationError("A user with this ID number already exists.")
+        return id_number
+
+    def clean_driving_license_number(self):
+        driving_license_number = self.cleaned_data['driving_license_number']
+        if CustomUser.objects.filter(driving_license_number=driving_license_number).exists():
+            raise ValidationError("A user with this driving license number already exists.")
+        return driving_license_number
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if CustomUser.objects.filter(email=email).exists():
+            raise ValidationError("A user with this email already exists.")
+        return email
+
+    @transaction.atomic
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = 'Driver'
+        user.password = make_password('changeme')  # Hash the password
+
+        if self.company:
+            user.region = self.company.region
+        else:
+            raise ValueError("Company must be provided to register a driver.")
+
+        if commit:
+            user.save()
+            profile= Profile.objects.get_or_create(user=user)
+            profile.profile_image = 'profile_pics/user_profile_pic.png'
+            profile.save()
+
+            driver= Driver.objects.get_or_create(user=user)
+            driver.company = self.company
+            driver.save()
+
+        return user
 class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
-        fields = ['sender', 'recipient']
+        fields = ['sender','recipient']

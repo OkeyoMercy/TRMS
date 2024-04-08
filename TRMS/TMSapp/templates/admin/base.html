@@ -29,34 +29,26 @@
 <body class="">
   <div class="wrapper ">
 
-    {% include 'sidebar.html' %}
+    {% include 'includes/sidebar.html' %}
 
     <div class="main-panel">
 
-      {% include 'navigation.html' %}
+      {% include 'includes/navigation.html' %}
 
       <!-- End Navbar -->
       <div class="content">
         <div class="container-fluid">
-
-          {% comment %} {% block content %}{% endblock content %} {% endcomment %}
-          <div>
-           {% include 'admin/sidebar.html'%}
-          </div>
-
+  {%block content%}{%endblock content%}
         </div>
       </div>
-
-      {% include 'footer.html' %}
-
+      {% include 'includes/footer.html' %}
     </div>
   </div>
+  {% include 'includes/fixed-plugin.html' %}
 
-  {% include 'fixed-plugin.html' %}
+  {% include 'includes/scripts.html' %}
 
-  {% include 'scripts.html' %}
-
-  {% include 'scripts-sidebar.html' %}
+  {% include 'includes/scripts-sidebar.html' %}
   <!-- Specific Page JS goes HERE  -->
   {% block javascripts %}{% endblock javascripts %}
   
