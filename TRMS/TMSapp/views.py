@@ -93,38 +93,12 @@ def driver_detail(request, pk):
     return render(request, 'driver_detail.html', {'driver': driver})
 
 @login_required
-def driver_list_create_update(request, pk=None):
-    if pk:
-        driver = get_object_or_404(Driver, pk=pk)
-        form = DriverRegistrationForm(request.POST or None, instance=driver)
-    else:
-        form = DriverRegistrationForm(request.POST or None)
-
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        return redirect('driver_list')
-
-    context = {'form': form, 'object': driver if pk else None}
-    return render(request, 'driver_form.html', context)
-
-@login_required
 def driver_delete(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
         driver.delete()
         return redirect('driver_list')
     return render(request, 'driver_confirm_delete.html', {'driver': driver})
-
-def Profile(request):
-    if request.method == 'POST':
-        form = DriverRegistrationForm(request.POST, request.FILES, instance=request.user.driver)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'{request.user.username}, Your profile is updated.')
-            return redirect('driver_dashboard')
-    else:
-        form = DriverRegistrationForm(instance=request.user.driver)
-    return render(request, 'driver_profile.html', {'form': form})
 
 def compose_message(request):
     if request.method == 'POST':
@@ -152,6 +126,7 @@ def profile(request):
         form = ProfileForm(instance= request.user.profile)
     context = {'form':form}
     return render (request,'driver.html', context)
+
 def compose_message(request):
     admin_users = User.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
 
@@ -214,26 +189,25 @@ def company_creation_view(request):
         form = CompanyManagerForm()
     return render(request, 'admin/register_company.html', {'form': form})
 
-
 @login_required
 def driver_registration_view(request):
-    if not (request.user.role == 'Manager' and hasattr(request.user, 'managed_company')):
+    print(f"User Role: {request.user.role}")
+    print(f"User Company: {request.user.company}")
+    if not (request.user.role == 'Manager' and hasattr(request.user, 'company')):
+        messages.error(request, "You are not authorized to perform this action.")
         return HttpResponseForbidden("You are not authorized to perform this action.")
-    try:
-        company = Company.objects.get(manager=request.user)
-    except Company.DoesNotExist:
+    company = request.user.company
+    print(company)
+    if not company:
         messages.error(request, "No associated company found for this manager.")
         return HttpResponseForbidden("You don't have permission to access this page.")
-    if request.method == 'POST':
-        form = DriverRegistrationForm(request.POST, request.FILES, company=company)
-        if form.is_valid():
-            driver = form.save(commit=False)
-            driver.company = company
-            driver.save()
-            messages.success(request, 'Driver registered successfully.')
-            return redirect('add_driver')
-    else:
-        form = DriverRegistrationForm(company=company)
+    form = DriverRegistrationForm(request.POST or None, request.FILES or None, company=company)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Driver registered successfully.')
+        return redirect('add_driver')  # Redirect to the list of drivers
+
     return render(request, 'register_driver.html', {'form': form})
 
 def send_message_to_admin(request):

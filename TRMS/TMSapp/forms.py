@@ -74,6 +74,7 @@ class CompanyManagerForm(forms.ModelForm):
     manager_email = forms.EmailField(required=True)
     manager_driving_license_number = forms.CharField(max_length=20)
     manager_id_number = forms.CharField(max_length=20)
+    manager_phone_number = forms.CharField(max_length=20)
     role = forms.CharField(widget=forms.TextInput(attrs={'readonly': True}), initial='Manager')
 
     class Meta:
@@ -84,6 +85,7 @@ class CompanyManagerForm(forms.ModelForm):
             'manager_email',
             'manager_driving_license_number',
             'manager_id_number',
+            'manager_phone_number',
             'role',
             'name',
             'address',
@@ -108,45 +110,51 @@ class CompanyManagerForm(forms.ModelForm):
             raise ValidationError("A user with this email already exists.")
         return email
 
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data['manager_phone_number']
+        if User.objects.filter(phone_number=phone_number).exists():
+            raise ValidationError("A user with this email already exists.")
+        return phone_number
+
     def save(self, commit=True):
         with transaction.atomic():
             company = super().save(commit=False)
-            user , created=CustomUser.objects.get_or_create(
+            user, created = CustomUser.objects.get_or_create(
                 email=self.cleaned_data['manager_email'],
                 defaults={
-                'first_name': self.cleaned_data['manager_first_name'],
-                'last_name': self.cleaned_data['manager_last_name'],
-                'middle_name': self.cleaned_data.get('manager_middle_name', ''),
-                'id_number': self.cleaned_data['manager_id_number'],
-                'driving_license_number': self.cleaned_data['manager_driving_license_number'],
-                'role': self.cleaned_data['role']
-            })
-            
+                    'first_name': self.cleaned_data['manager_first_name'],
+                    'last_name': self.cleaned_data['manager_last_name'],
+                    'middle_name': self.cleaned_data.get('manager_middle_name', ''),
+                    'id_number': self.cleaned_data['manager_id_number'],
+                    'driving_license_number': self.cleaned_data['manager_driving_license_number'],
+                    'phone_number': self.cleaned_data['manager_phone_number'],
+                    'region': self.cleaned_data['region'],
+                    'role': 'Manager'
+                }
+            )
+
             if created:
                 user.set_password('changeme')
                 user.save()
-                
-            Profile.objects.get_or_create(user=user, defaults={'profile_image':'profile_pics/user_profile_pic.png'})
-            manager_groups, _=Group.objects.get_or_create(name='Manager')
-            user.groups.add(manager_groups)
-        company.manager=user
-        if commit:
+            company.manager = user
             company.save()
+            user.company = company
+            user.save()
+            Profile.objects.get_or_create(user=user, defaults={'profile_image': 'profile_pics/user_profile_pic.png'})
+            manager_group, _ = Group.objects.get_or_create(name='Manager')
+            user.groups.add(manager_group)
+
         return company
-class DriverRegistrationForm(forms.ModelForm):
+
+class DriverRegistrationForm(ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['first_name',
-                  'middle_name',
-                  'last_name',
-                  'id_number',
-                  'driving_license_number',
-                  'email',
-                  'phone_number']
+        fields = ['first_name', 'middle_name', 'last_name', 'id_number', 'driving_license_number', 'email', 'phone_number']
 
     def __init__(self, *args, **kwargs):
         self.company = kwargs.pop('company', None)
         super(DriverRegistrationForm, self).__init__(*args, **kwargs)
+        print(self.company)
         if not self.company:
             raise ValueError("Company is required to register a driver.")
 
@@ -172,24 +180,28 @@ class DriverRegistrationForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role = 'Driver'
-        user.password = make_password('changeme')  # Hash the password
-
+        user.set_password('changeme')
         if self.company:
+            user.company = self.company
             user.region = self.company.region
-        else:
-            raise ValueError("Company must be provided to register a driver.")
 
         if commit:
             user.save()
-            profile= Profile.objects.get_or_create(user=user)
-            profile.profile_image = 'profile_pics/user_profile_pic.png'
-            profile.save()
-
-            driver= Driver.objects.get_or_create(user=user)
-            driver.company = self.company
-            driver.save()
+            driver_group, _ = Group.objects.get_or_create(name='Driver')
+            user.groups.add(driver_group)
+            profile, created = Profile.objects.get_or_create(user=user)
+            if created or not profile.profile_image:
+                profile.profile_image = 'profile_pics/user_profile_pic.png'
+                profile.save()
+            driver, created = Driver.objects.get_or_create(user=user)
+            if created or not driver.vehicle_assigned:
+                driver.vehicle_assigned = None
+                driver.company = self.company
+                driver.save()
 
         return user
+
+
 class MessageForm(forms.ModelForm):
     class Meta:
         model = Message

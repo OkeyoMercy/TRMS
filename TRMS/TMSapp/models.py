@@ -34,6 +34,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
     region = models.CharField(max_length=100)
     role =models.CharField(max_length=30)
+    company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True, related_name='members')
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
@@ -87,7 +88,7 @@ class Company(models.Model):
     address = models.TextField()
     region = models.CharField(max_length=100)
     county = models.CharField(max_length=100)
-    manager = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='managed_company')
+    manager = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='managing_company')
 
     def __str__(self):
         return f"Company: {self.name}"
@@ -99,12 +100,13 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return f"{self.make} {self.model} ({self.registration_number})"
-class Driver(CustomUser):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='drivers')
-    vehicle_assigned = models.OneToOneField(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_driver')
+class Driver(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='driver_profile')
+    vehicle_assigned = models.OneToOneField('Vehicle', on_delete=models.SET_NULL, null=True, blank=True)
+    company = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, related_name='drivers')
 
     def __str__(self):
-        return f"Driver: {self.get_full_name()} - {self.driving_license_number}"
+        return f"Driver: {self.user.get_full_name()} - {self.user.driving_license_number}"
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
