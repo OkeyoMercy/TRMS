@@ -1,7 +1,7 @@
 from django.conf import settings
 import requests
 from django.core.cache import cache
-from .models import RoadCondition, Route
+#from .models import RoadCondition, Route
 
 def fetch_routes(origin, destination, api_key):
     # Example using Mapbox Directions API

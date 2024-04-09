@@ -24,7 +24,6 @@ SECRET_KEY = 'django-insecure-2$^cpk1*i2@_rufx0vkdzply(0+jc(-p_c0immsn&a@lqtqob_
 DEBUG = True
 
 ALLOWED_HOSTS = []
-<<<<<<< HEAD:TRMS/TMS/settings.py
 GEOAPIFY_API_KEY = '3137326edb344c3ab9f7745c2aa5d75a'
 OPENWEATHER_API_KEY = 'your_openweather_api_key_here'
 CHANNEL_LAYERS = {
@@ -32,8 +31,6 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer'
     }
 }
-=======
->>>>>>> 5a6070db60952c38c93e9d7e98fe6155c684e5c6:TRMS/TRMS/settings.py
 
 # Application definition
 INSTALLED_APPS = [
