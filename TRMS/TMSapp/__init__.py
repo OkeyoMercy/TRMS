@@ -1,1 +1,1 @@
-default_app_config = 'TMSapp.apps.YourAppConfig'
+default_app_config = 'TMSapp.apps.TMSappConfig'

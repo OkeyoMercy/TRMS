@@ -7,17 +7,16 @@ import requests
 import urllib3
 from .forms import LoginForm, MessageForm
 from django.contrib.auth.decorators import login_required
+import logging
+import requests
+from django.conf import settings
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from .models import Driver, Profile, Weather
-from .forms import DriverForm
-from .forms import ProfileForm
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from .models import Message
-from .models import Task, Message
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Message, User
+from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
@@ -30,7 +29,14 @@ from django.shortcuts import render
 from .models import Task, Message
 from django.contrib.auth.models import User
 from .utils import fetch_weather_for_route, fetch_road_condition_for_route, calculate_route_score
-
+from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
+from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
+                    MessageForm, ProfileForm, TMSAdminstratorCreationForm)
+from .models import (Company, CustomUser, Driver, Message, Profile,
+                     RoadCondition, Route, Task, User, Weather)
 
 logger = logging.getLogger(__name__)
 
@@ -38,25 +44,45 @@ def login_view(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
+            credential = form.cleaned_data['username']
             password = form.cleaned_data['password']
-            user = authenticate(username=username, password=password)
-            
-            if user is not None and user.is_active:
-                login(request, user)
-                return redirect('driver')  # Redirect all users to the drivers page after login
+            user = authenticate(username=credential, password=password)
+            if user is not None:
+                if user.is_active:
+                    login(request, user)
+
+                    if user.groups.filter(name='TMS Adminstrator').exists():
+                        return redirect('/admin/')
+                    elif user.groups.filter(name='Manager').exists():
+                        return redirect('manager_dashboard')
+                    elif user.groups.filter(name='Driver').exists():
+                        return redirect('driver_dashboard')
+                    else:
+                        messages.error(request, 'No role assigned. Please contact the adminstrator.')
+                else:
+                    messages.error(request,
+                                   'User account is inactive. Please contact the adminstrator.')
             else:
-                messages.error(request, 'Invalid login credentials.')
+                messages.error(request, 'Invalid username or password.')
     else:
         form = LoginForm()
-
     return render(request, 'login.html', {'form': form})
 
+@login_required
+def dashboard_redirect(request):
+    if request.user.groups.filter(name='TMS Adminstrator').exists():
+        return redirect('/admin/')
+    elif request.user.groups.filter(name='Driver').exists():
+        return redirect('driver_dashboard')
+    elif request.user.groups.filter(name='Manager').exists():
+        return redirect('manager_dashboard')
+    else:
+        messages.error(request, "You don't have permission to access this page.")
+        return redirect('login')
 
-# Dashboard views for each user type
 @login_required
 def tms_admin_dashboard(request):
-    # Ensure the user is a TMS Administrator
+    # Ensure the user is a TMS Adminstrator
     if not request.user.is_staff:
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
@@ -77,48 +103,33 @@ def driver_dashboard(request):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
     return render(request, 'driver_dashboard.html')
-def driver (request):
-    objects = Driver.objects.all()
-    return render (request,'driver.html', {'drivers':driver})
-def driver_list(request):
-    drivers = Driver.objects.all()
-    return render(request, 'driver_list.html', {'drivers': drivers})
 
 @login_required
 def driver_detail(request, pk):
-    driver = Driver.objects.get(pk=pk)
+    driver = get_object_or_404(Driver, pk=pk)
     return render(request, 'driver_detail.html', {'driver': driver})
 
 @login_required
-def driver_create(request):
-    if request.method == 'POST':
-        form = DriverForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('driver_list')
-    else:
-        form = DriverForm()
-    return render(request, 'driver_form.html', {'form': form})
-
-@login_required
-def driver_update(request, pk):
-    driver = Driver.objects.get(pk=pk)
-    if request.method == 'POST':
-        form = DriverForm(request.POST, instance=driver)
-        if form.is_valid():
-            form.save()
-            return redirect('driver_list')
-    else:
-        form = DriverForm(instance=driver)
-    return render(request, 'driver_form.html', {'form': form})
-
-@login_required
 def driver_delete(request, pk):
-    driver = Driver.objects.get(pk=pk)
+    driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
         driver.delete()
         return redirect('driver_list')
     return render(request, 'driver_confirm_delete.html', {'driver': driver})
+
+def compose_message(request):
+    if request.method == 'POST':
+        body = request.POST.get('content')
+        recipient_id = request.POST.get('receiver_id')
+        recipient = User.objects.get(id=recipient_id)
+        Message.objects.create(sender=request.user, recipient=recipient, body=body)
+        return redirect('inbox')
+    return render(request, 'compose_message.html')
+
+@login_required
+def inbox(request):
+    received_messages = Message.objects.filter(recipient=request.user)
+    return render(request, 'inbox.html', {'received_messages': received_messages})
 def profile(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
@@ -130,8 +141,9 @@ def profile(request):
             return redirect('profile')
     else:
         form = ProfileForm(instance= request.user.profile)
-    context = {'form':form}  
+    context = {'form':form}
     return render (request,'driver.html', context)
+
 def compose_message(request):
     admin_users = User.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
 
@@ -146,22 +158,75 @@ def compose_message(request):
             return redirect('inbox')
         except User.DoesNotExist:
             messages.error(request, 'Recipient not found.')
-            return redirect('inbox')  # Adjust the redirect as necessary
+            return redirect('inbox')
 
-    return render(request, 'compose_message.html') 
+    return render(request, 'compose_message.html')
 
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
 
 
+@login_required
 def tasks_view(request):
     tasks = Task.objects.filter(driver=request.user)
     return render(request, 'tasks.html', {'tasks': tasks})
 
+@login_required
 def messages_view(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'messages.html', {'received_messages': received_messages})
+
+
+@login_required
+def tms_adminstrator_create_view(request):
+    if request.method == 'POST':
+        form = TMSAdminstratorCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Adminstrator registered successfully.')
+            return redirect('admin:add_tms_admin')
+    else:
+        form = TMSAdminstratorCreationForm()
+    return render(request, 'admin/create_admin.html', {'form': form})
+
+
+@login_required
+@transaction.atomic
+def company_creation_view(request):
+    if not request.user.groups.filter(name='TMS Adminstrator').exists():
+        return HttpResponseForbidden("You don't have permission to access this page.")
+    if request.method == 'POST':
+        form = CompanyManagerForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Company and Manager registered successfully.')
+            return redirect('add_company')
+    else:
+        form = CompanyManagerForm()
+    return render(request, 'admin/register_company.html', {'form': form})
+
+@login_required
+def driver_registration_view(request):
+    print(f"User Role: {request.user.role}")
+    print(f"User Company: {request.user.company}")
+    if not (request.user.role == 'Manager' and hasattr(request.user, 'company')):
+        messages.error(request, "You are not authorized to perform this action.")
+        return HttpResponseForbidden("You are not authorized to perform this action.")
+    company = request.user.company
+    print(company)
+    if not company:
+        messages.error(request, "No associated company found for this manager.")
+        return HttpResponseForbidden("You don't have permission to access this page.")
+    form = DriverRegistrationForm(request.POST or None, request.FILES or None, company=company)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Driver registered successfully.')
+        return redirect('add_driver')  # Redirect to the list of drivers
+
+    return render(request, 'register_driver.html', {'form': form})
+
 def send_message_to_admin(request):
     logger.debug("Attempting to send a message to admin.")
     admin_users = User.objects.filter(is_superuser=True)
@@ -177,7 +242,7 @@ def send_message_to_admin(request):
                 message.save()
                 return redirect('message_sent_success')  # Redirect to a success page
             else:
-                logger.warning("Attempted to send message to admin, but no admin user found.")          
+                logger.warning("Attempted to send message to admin, but no admin user found.")
                 pass
     else:
         form = MessageForm()
@@ -217,8 +282,6 @@ def send_message(request, recipient_id):
     # Added the following for debugging
     print("Recipient ID:", recipient_id)
     return render(request, 'send_messages.html', {'recipient_id': recipient_id})
-
-
 
 def update_weather_for_route(route):
     
