@@ -4,6 +4,8 @@ from .views import compose_message, inbox, route_view
 from .views import tasks_view, messages_view
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from .views import render_route,profile_page,logout_view
+
 
 from .views import (company_creation_view, compose_message, dashboard_redirect,
                     display_best_route, driver_dashboard,
@@ -41,4 +43,9 @@ urlpatterns = [
     path('messages/', messages_view, name='messages'),
     path('send_message/<int:recipient_id>/', send_message, name='send_message'),
     path('best-route/', display_best_route, name='display_best_route'),
+    #testing route
+    # path('calculate-route/', calculate_route, name='calculate_route'),
+    path('profiles/', profile_page, name='profile_page'),
+    path('render-route/', render_route, name='render_route'),
+    path('logout', logout_view, name='logout'),
 ]

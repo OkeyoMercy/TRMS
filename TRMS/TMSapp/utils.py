@@ -118,3 +118,10 @@ def calculate_route_score(route, weather, road_condition):
         score += 20  # Add points for bad road conditions
 
     return score
+# this is testing for routes
+
+
+def get_route_now(api_key, start_point, end_point, **kwargs):
+    url = f"https://api.geoapify.com/v1/routing?waypoints={start_point};{end_point}&apiKey={api_key}"
+    response = requests.get(url, params=kwargs)
+    return response.json()

@@ -3,266 +3,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ driver.user.username }}'s Profile</title>
+  <meta charset="utf-8" />
+  <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.png' %}">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <link rel="canonical" href="https://appseed.us/admin-dashboards/django-dashboard-material">
+  <link rel="stylesheet" href="{% static 'admin/css/customsidebar.css' %}">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL6f8ARn0kI7VkAkuuuMP4LrGpFDDedRrz5J8" crossorigin="anonymous">
+  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+  <!--     Fonts and icons     -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700|Material+Icons" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css">
+  <!-- CSS Files -->
+  <link href="{% static 'assets/css/material-dashboard.css' %}?v=2.1.2" rel="stylesheet" />
+  <link href="{% static 'assets/demo/demo.css' %}" rel="stylesheet" />
+
+   <!--     Fonts and icons     -->
+   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700|Material+Icons" />
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css">
+   <!-- CSS Files -->
+   <link href="{% static 'assets/css/material-dashboard.css' %}?v=2.1.2" rel="stylesheet" />
+   <link href="{% static 'assets/demo/demo.css' %}" rel="stylesheet" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL6f8ARn0kI7VkAkuuuMP4LrGpFDDedRrz5J8" crossorigin="anonymous">
+    <title>{{ user.first_name }}'s Profile</title>
     <link rel="stylesheet" href="{% static 'C:\Users\user\Desktop\TRMS\TRMS\TRMS\static\assets\css\styles\style.css' %}">
-    <nav>
-        <div class="dropdown">
-            <button class="dropbtn">ALERTS</button>
-            <div class="dropdown-content">
-                {% comment %} <a href="{% url 'driver_profile' user_id=request.user.id%}">Profile</a> {% endcomment %}
-                 
-                <ul>
-                    <li><a href="{% url 'tasks' %}">Tasks</a></li>
-                    <li><a href="{% url 'inbox' %}">Messages</a></li>
-                    <!-- Add other menu items as needed -->
-                </ul>
-            </div>
-        </div>
-    </nav>   
-       
-        <ul>
-            {% for task in tasks %}
-                <li>{{ task.title }} - {{ task.day }} at {{ task.time }}</li>
-            {% endfor %}
-        </ul>
 
-       
 </head>
-{% comment %} <div class="profile">
-    <h2>{{ request.user.username }}'s Profile</h2>
-    
-    {% if profile.profile_image %}
-        <img src="{{ profile.profile_image.url }}" alt="Profile Image" style="width: 150px; height: 150px;">
-    {% else %}
-        <p>No profile image</p>
-    {% endif %}
-
-    {% if profile.bio %}
-        <p>Bio: {{ profile.bio }}</p>
-    {% else %}
-        <p>Please fill in your bio.</p>
-    {% endif %}
-</div> {% endcomment %}
-<div class="profile">
-{% if request.user.profile.profile_image %}
-    <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image">
-{% else %}
-    <p>No profile image</p>
-{% endif %}
-{% if request.user.profile.bio %}
-    <p>Bio: {{ request.user.profile.bio }}</p>
-{% else %}
-    <p>Please fill in your bio.</p>
-{% endif %}
-</div>
-<br>
-<br>
-<br>
-<br>
-<div class="edit-profile">
-    <h2>Edit Profile</h2>
-    <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Make Changes</button>
-    </form>
-</div>
-
-
 <body>
-    {% block content %}
-    <h1>Find Best Route</h1>
-    <form action="{% url 'display_best_route' %}" method="get">
-        <label for="start">Start Location:</label>
-        <input type="text" id="start" name="start" required>
+    {% include 'includes/navigation.html' %}
 
-        <label for="end">End Location:</label>
-        <input type="text" id="end" name="end" required>
-
-        <button type="submit">Find Route</button>
-    </form>
-
-    <hr>
-
-    <h2>Best Route Details</h2>
-    {% if route %}
-        <p><strong>From:</strong> {{ route.start_location }}</p>
-        <p><strong>To:</strong> {{ route.end_location }}</p>
-        <p><strong>Distance:</strong> {{ route.distance }} km</p>
-        {% if weather %}
-    <p>Current weather: {{ weather }}</p>
-{% endif %}
-        <!-- You can add more details here -->
-    {% else %}
-        <p>No suitable route found.</p>
-    {% endif %}
-{% endblock %}
-   
-    <li><a href="{% url 'track' %}">VIEW MAP</a></li>
-<h1>Route Information</h1>
-<div id="route-info"></div>
-<script>
-    var requestOptions = {
-        method: 'GET',
-      };
-    const fromWaypoint = [38.937165,-77.045590]; // latutude, longitude
-    const toWaypoint = [38.881152,-76.990693]; 
-    fetch("https://api.geoapify.com/v1/routing?waypoints=50.96209827745463%2C4.414458883409225%7C50.429137079078345%2C5.00088081232559&mode=drive&apiKey=3137326edb344c3ab9f7745c2aa5d75a", requestOptions)
-        .then(response => response.json())
-        .then(result => {
-            console.log(result);
-            // Process the result and update the DOM accordingly
-            const routeInfoDiv = document.getElementById('route-info');
-            routeInfoDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
-          })
-          .catch(error => console.log('error', error));
-         L.geoJSON(routeResult, {
-            style: (feature) => {
-              return {
-                color: "rgba(20, 137, 255, 0.7)",
-                weight: 5
-              };
-            }
-          }).bindPopup((layer) => {
-            return `${layer.feature.properties.distance} ${layer.feature.properties.distance_units}, ${layer.feature.properties.time}`
-          }).addTo(map);
-          const turnByTurns = []; // collect all transitions
-          routeResult.features.forEach(feature => feature.properties.legs.forEach((leg, legIndex) => leg.steps.forEach(step => {
-            const pointFeature = {
-              "type": "Feature",
-              "geometry": {
-                "type": "Point",
-                "coordinates": feature.geometry.coordinates[legIndex][step.from_index]
-              },
-              "properties": {
-                "instruction": step.instruction.text
-              }
-            }
-            turnByTurns.push(pointFeature);
-          })));
-          
-          L.geoJSON({
-            type: "FeatureCollection",
-            features: turnByTurns
-          }, {
-            pointToLayer: function(feature, latlng) {
-              return L.circleMarker(latlng, turnByTurnMarkerStyle);
-            }
-          }).bindPopup((layer) => {
-            return `${layer.feature.properties.instruction}`
-          }).addTo(map);
-          map.addSource('route', {
-            type: 'geojson',
-            data: routeResult
-          });
-          
-          map.addLayer({
-            'id': 'route-layer',
-            'type': 'line',
-            'source': 'route',
-            'layout': {
-              'line-cap': "round",
-              'line-join': "round"
-            },
-            'paint': {
-              'line-color': "#6084eb",
-              'line-width': 8
-            },
-            'filter': ['==', '$type', 'LineString']
-          });
-          const steps = [];
-          routeResult.features[0].properties.legs.forEach((leg, legIndex) => {
-            const legGeometry = routeData.features[0].geometry.coordinates[legIndex];
-            leg.steps.forEach((step, index) => {
-              if (step.from_index === step.to_index) {
-                // destination point
-                return;
-              }
-          
-              const stepGeometry = legGeometry.slice(step.from_index, step.to_index + 1);
-              steps.push({
-                "type": "Feature",
-                  "geometry": {
-                  "type": "LineString",
-                  "coordinates": stepGeometry
-                },
-                properties: step
-              });
-            });
-          });
-               
-    </script>
-    {% comment %} <div id="route-summary">
-        <h2>Route Summary</h2>
-        <p>Total Distance: <span id="total-distance"></span> km</p>
-        <p>Total Time: <span id="total-time"></span> minutes</p>
-    </div>
-    
-    <div id="route-instructions">
-        <h2>Step-by-Step Instructions</h2>
-        <ol id="instructions-list"></ol>
-    </div>
-     {% endcomment %}
-    <!-- Optional: div for map display -->
-    <div id="map" style="width: 100%; height: 400px;"></div>
-    <h1>Find a Route</h1>
-    <form id="routeForm">
-        Start: <input type="text" id="start" name="start">
-        End: <input type="text" id="end" name="end">
-        <button type="submit">Get Route</button>
-    </form>
-    <div id="routeInfo"></div>
-    <script>
-      document.getElementById('routeForm').addEventListener('submit', function(e) {
-          e.preventDefault();
-          var start = document.getElementById('start').value;
-          var end = document.getElementById('end').value;
-          fetch(`/myapp/get_route/?start=${start}&end=${end}`)
-              .then(response => response.json())
-              .then(data => {
-                  document.getElementById('routeInfo').textContent = JSON.stringify(data, null, 2);
-              });
-      });
-  </script>
   
-    <script>
-        // Example: Parse and display route data passed from Django view
-        const routeData = {{ route_data|safe }};
-    
-        document.getElementById('total-distance').innerText = (routeData.features[0].properties.distance / 1000).toFixed(2);
-        document.getElementById('total-time').innerText = (routeData.features[0].properties.time / 60).toFixed(2);
-    
-        const instructionsList = document.getElementById('instructions-list');
-        routeData.features[0].properties.legs[0].steps.forEach(step => {
-            const li = document.createElement('li');
-            li.innerText = `${step.instruction.text} - ${step.distance} meters`;
-            instructionsList.appendChild(li);
-        });
-    
-        // Optional: Initialize and display the map using Geoapify or another map service
-    </script>
-    <h1>Find a Route</h1>
-    <form id="routeForm">
-        Start: <input type="text" id="start" name="start">
-        End: <input type="text" id="end" name="end">
-        <button type="submit">Get Route</button>
-    </form>
-    <div id="routeInfo"></div>
-    <script>
-      document.getElementById('routeForm').addEventListener('submit', function(e) {
-          e.preventDefault();
-          var start = document.getElementById('start').value;
-          var end = document.getElementById('end').value;
-          fetch(`/myapp/get_route/?start=${start}&end=${end}`)
-              .then(response => response.json())
-              .then(data => {
-                  document.getElementById('routeInfo').textContent = JSON.stringify(data, null, 2);
-              });
-      });
-  </script>
+  <div class="container mt-4"> 
+    <div class="profile">
+      {% if request.user.profile.profile_image %}
+        <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 200px; height: 200px;">
+      {% else %}
+          <p>No profile image</p>
+      {% endif %}
+      {% if request.user.profile.bio %}
+          <p>Bio: {{ request.user.profile.bio }}</p>
+      {% else %}
+          <p>Please fill in your bio.</p>
+      {% endif %}
+      <div class="edit-profile">
+        <h2>Edit Profile</h2>
+        <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Make Changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% block javascripts %}{% endblock javascripts %}
   
-    <footer>
-        <p>Copyright © Your Company | All rights reserved</p>
-    </footer>
+  {% include 'includes/scripts.html' %}
+  <footer class="mt-4"> <!-- Add Bootstrap class for margin-top -->
+    <div class="container">
+      <p>Copyright © Your Company | All rights reserved</p>
+    </div>
+  </footer>
 </body>
 </html>

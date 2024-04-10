@@ -31,12 +31,15 @@ from django.contrib.auth.models import User
 from .utils import fetch_weather_for_route, fetch_road_condition_for_route, calculate_route_score
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth import logout
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
                     MessageForm, ProfileForm, TMSAdminstratorCreationForm)
 from .models import (Company, CustomUser, Driver, Message, Profile,
-                     RoadCondition, Route, Task, User, Weather)
+                     RoadCondition, Route, Task, CustomUser, Weather)
+#testing route
+from .utils import get_route_now
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +59,7 @@ def login_view(request):
                     elif user.groups.filter(name='Manager').exists():
                         return redirect('manager_dashboard')
                     elif user.groups.filter(name='Driver').exists():
-                        return redirect('driver_dashboard')
+                        return redirect('route_view')
                     else:
                         messages.error(request, 'No role assigned. Please contact the adminstrator.')
                 else:
@@ -70,6 +73,7 @@ def login_view(request):
 
 @login_required
 def dashboard_redirect(request):
+    received_messages = Message.objects.filter(recipient=request.user)
     if request.user.groups.filter(name='TMS Adminstrator').exists():
         return redirect('/admin/')
     elif request.user.groups.filter(name='Driver').exists():
@@ -104,12 +108,12 @@ def driver_dashboard(request):
         return redirect('login')
     return render(request, 'driver_dashboard.html')
 
-#@login_required
+@login_required
 def driver_detail(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     return render(request, 'driver_detail.html', {'driver': driver})
 
-#@login_required
+@login_required
 def driver_delete(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
@@ -121,42 +125,48 @@ def compose_message(request):
     if request.method == 'POST':
         body = request.POST.get('content')
         recipient_id = request.POST.get('receiver_id')
-        recipient = User.objects.get(id=recipient_id)
+        recipient = CustomUser.objects.get(id=recipient_id)
         Message.objects.create(sender=request.user, recipient=recipient, body=body)
         return redirect('inbox')
     return render(request, 'compose_message.html')
 
-#@login_required
+@login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
-    return render(request, 'inbox.html', {'received_messages': received_messages})
+    users= CustomUser.objects.exclude(id=request.user.id)
+    print(users)
+    return render(request, 'inbox.html', {'received_messages': received_messages, 'users':users})
+
 def profile(request):
+    
     profile, created = Profile.objects.get_or_create(user=request.user)
+    # print(profile)
     if request.method == 'POST':
         form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
         if form.is_valid ():
             form.save()
-            username = request.user.username
+            username = request.user.first_name
             messages.success(request, f'{username}, Your profile is updated.')
             return redirect('profile')
     else:
         form = ProfileForm(instance= request.user.profile)
     context = {'form':form}
-    return render (request,'driver.html', context)
+    print("The url is"+request.user.profile.profile_image.url)
+    return render (request,'driver.html', {'form':form})
 
 def compose_message(request):
-    admin_users = User.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
+    admin_users = CustomUser.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
 
     if request.method == 'POST':
         body = request.POST.get('body')
         recipient_id = request.POST.get('recipient_id')
 
         try:
-            recipient = User.objects.get(id=recipient_id)
+            recipient = CustomUser.objects.get(id=recipient_id)
             Message.objects.create(sender=request.user, recipient=recipient, body=body)
             messages.success(request, 'Message sent successfully.')
             return redirect('inbox')
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             messages.error(request, 'Recipient not found.')
             return redirect('inbox')
 
@@ -167,18 +177,18 @@ def create_user_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)
 
 
-#@login_required
+@login_required
 def tasks_view(request):
     tasks = Task.objects.filter(driver=request.user)
     return render(request, 'tasks.html', {'tasks': tasks})
 
-#@login_required
+@login_required
 def messages_view(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'messages.html', {'received_messages': received_messages})
 
 
-#@login_required
+@login_required
 def tms_adminstrator_create_view(request):
     if request.method == 'POST':
         form = TMSAdminstratorCreationForm(request.POST)
@@ -191,7 +201,7 @@ def tms_adminstrator_create_view(request):
     return render(request, 'admin/create_admin.html', {'form': form})
 
 
-#@login_required
+@login_required
 @transaction.atomic
 def company_creation_view(request):
     if not request.user.groups.filter(name='TMS Adminstrator').exists():
@@ -206,7 +216,7 @@ def company_creation_view(request):
         form = CompanyManagerForm()
     return render(request, 'admin/register_company.html', {'form': form})
 
-#@login_required
+@login_required
 def driver_registration_view(request):
     print(f"User Role: {request.user.role}")
     print(f"User Company: {request.user.company}")
@@ -229,7 +239,7 @@ def driver_registration_view(request):
 
 def send_message_to_admin(request):
     logger.debug("Attempting to send a message to admin.")
-    admin_users = User.objects.filter(is_superuser=True)
+    admin_users = CustomUser.objects.filter(is_superuser=True)
     if request.method == 'POST':
         form = MessageForm(request.POST)
         if form.is_valid():
@@ -265,17 +275,17 @@ def send_notification(sender, instance, created, **kwargs):
             fail_silently=False,
         )
         
-#@login_required
+@login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     sent_messages = Message.objects.filter(sender=request.user)
-    users = User.objects.exclude(id=request.user.id)
+    users = CustomUser.objects.exclude(id=request.user.id)
     return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users})
 
-#@login_required
+@login_required
 def send_message(request, recipient_id):
     if request.method == 'POST':
-        recipient = User.objects.get(id=recipient_id)
+        recipient = CustomUser.objects.get(id=recipient_id)
         content = request.POST.get('content', '')
         message = Message.objects.create(sender=request.user, recipient=recipient, content=content)
         return render(request, 'send_messages.html', {'message_sent': True, 'recipient_id': recipient_id})
@@ -425,35 +435,19 @@ def find_best_route(request):
         return HttpResponse("Unable to determine the best route.")
 
 def route_view(request):
-    context = {}
-
+    user = request.user
+    received_messages = Message.objects.filter(recipient=request.user).order_by('-timestamp')[:4]
     # Only proceed if both start and end locations are provided
     if 'start' in request.GET and 'end' in request.GET:
         start = request.GET['start']
         end = request.GET['end']
-    url = "https://api.geoapify.com/v1/routing?waypoints=50.96209827745463%2C4.414458883409225%7C50.429137079078345%2C5.00088081232559&mode=drive&apiKey=3137326edb344c3ab9f7745c2aa5d75a"
 
-    response = requests.get(url)
-    if response.status_code == 200:
-            # Add the route data to the context
-            context['route_data'] = response.json()
-    else:
-            context['error'] = "Failed to retrieve the route"
+    return render(request, 'driver.html', {'user':user,'received_messages':received_messages})
 
-    return render(request, 'driver.html', context)
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
-# def get_route(request):
-#     api_key = '3137326edb344c3ab9f7745c2aa5d75a'
-#     start = 'start_point_longitude,start_point_latitude'  # Example: '13.388860,52.517037'
-#     end = 'end_point_longitude,end_point_latitude'  # Example: '13.397634,52.529407'
-#     base_url = f'https://api.geoapify.com/v1/routing?waypoints={start}|{end}&mode=drive&apiKey={api_key}'
-
-#     response = requests.get(url)
-#     if response.status_code == 200:
-#         route_data = response.json()
-#         return render(request, 'driver.html', {'route_data': route_data})
-#     else:
-#         return JsonResponse({'error': 'Failed to fetch route data'}, status=500)
 def get_route(request):
     api_key = settings.GEOAPIFY_API_KEY  # Assuming you've added this in your settings.py
     start = request.GET.get('start', 'default_start')  # Replace 'default_start' with a default or error handling
@@ -472,3 +466,28 @@ def get_route(request):
         return render(request, 'driver.html', {'route_data': route_data})
     else:
         return JsonResponse({'error': 'Failed to fetch route data'}, status=response.status_code)
+    
+    
+    
+    
+#testing route
+def render_route(request):
+    return render(request, 'routing.html')
+
+
+def profile_page(request):
+    
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    # print(profile)
+    if request.method == 'POST':
+        form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid ():
+            form.save()
+            username = request.user.first_name
+            messages.success(request, f'{username}, Your profile is updated.')
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance= request.user.profile)
+    context = {'form':form}
+    print("The url is"+request.user.profile.profile_image.url)
+    return render (request,'profile.html', {'form':form})
