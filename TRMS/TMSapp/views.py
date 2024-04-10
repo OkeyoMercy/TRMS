@@ -104,12 +104,12 @@ def driver_dashboard(request):
         return redirect('login')
     return render(request, 'driver_dashboard.html')
 
-@login_required
+#@login_required
 def driver_detail(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     return render(request, 'driver_detail.html', {'driver': driver})
 
-@login_required
+#@login_required
 def driver_delete(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
@@ -126,7 +126,7 @@ def compose_message(request):
         return redirect('inbox')
     return render(request, 'compose_message.html')
 
-@login_required
+#@login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'inbox.html', {'received_messages': received_messages})
@@ -167,18 +167,18 @@ def create_user_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)
 
 
-@login_required
+#@login_required
 def tasks_view(request):
     tasks = Task.objects.filter(driver=request.user)
     return render(request, 'tasks.html', {'tasks': tasks})
 
-@login_required
+#@login_required
 def messages_view(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'messages.html', {'received_messages': received_messages})
 
 
-@login_required
+#@login_required
 def tms_adminstrator_create_view(request):
     if request.method == 'POST':
         form = TMSAdminstratorCreationForm(request.POST)
@@ -191,7 +191,7 @@ def tms_adminstrator_create_view(request):
     return render(request, 'admin/create_admin.html', {'form': form})
 
 
-@login_required
+#@login_required
 @transaction.atomic
 def company_creation_view(request):
     if not request.user.groups.filter(name='TMS Adminstrator').exists():
@@ -206,7 +206,7 @@ def company_creation_view(request):
         form = CompanyManagerForm()
     return render(request, 'admin/register_company.html', {'form': form})
 
-@login_required
+#@login_required
 def driver_registration_view(request):
     print(f"User Role: {request.user.role}")
     print(f"User Company: {request.user.company}")
@@ -265,14 +265,14 @@ def send_notification(sender, instance, created, **kwargs):
             fail_silently=False,
         )
         
-@login_required
+#@login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     sent_messages = Message.objects.filter(sender=request.user)
     users = User.objects.exclude(id=request.user.id)
     return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users})
 
-@login_required
+#@login_required
 def send_message(request, recipient_id):
     if request.method == 'POST':
         recipient = User.objects.get(id=recipient_id)
