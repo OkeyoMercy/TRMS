@@ -3,122 +3,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ driver.user.username }}'s Profile</title>
+  <meta charset="utf-8" />
+  <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.png' %}">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <link rel="canonical" href="https://appseed.us/admin-dashboards/django-dashboard-material">
+  <link rel="stylesheet" href="{% static 'admin/css/customsidebar.css' %}">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL6f8ARn0kI7VkAkuuuMP4LrGpFDDedRrz5J8" crossorigin="anonymous">
+  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+  <!--     Fonts and icons     -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700|Material+Icons" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css">
+  <!-- CSS Files -->
+  <link href="{% static 'assets/css/material-dashboard.css' %}?v=2.1.2" rel="stylesheet" />
+  <link href="{% static 'assets/demo/demo.css' %}" rel="stylesheet" />
+
+   <!--     Fonts and icons     -->
+   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700|Material+Icons" />
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css">
+   <!-- CSS Files -->
+   <link href="{% static 'assets/css/material-dashboard.css' %}?v=2.1.2" rel="stylesheet" />
+   <link href="{% static 'assets/demo/demo.css' %}" rel="stylesheet" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL6f8ARn0kI7VkAkuuuMP4LrGpFDDedRrz5J8" crossorigin="anonymous">
+    <title>{{ user.first_name }}'s Profile</title>
     <link rel="stylesheet" href="{% static 'C:\Users\user\Desktop\TRMS\TRMS\TRMS\static\assets\css\styles\style.css' %}">
-    <nav>
-        <div class="dropdown">
-            <button class="dropbtn">ALERTS</button>
-            <div class="dropdown-content">
-                {% comment %} <a href="{% url 'driver_profile' user_id=request.user.id%}">Profile</a> {% endcomment %}
-                 
-                <ul>
-                    <li><a href="{% url 'tasks' %}">Tasks</a></li>
-                    <li><a href="{% url 'inbox' %}">Messages</a></li>
-                    <!-- Add other menu items as needed -->
-                </ul>
-            </div>
-        </div>
-    </nav>   
-       
-        <ul>
-            {% for task in tasks %}
-                <li>{{ task.title }} - {{ task.day }} at {{ task.time }}</li>
-            {% endfor %}
-        </ul>
 
-       
 </head>
-{% comment %} <div class="profile">
-    <h2>{{ request.user.username }}'s Profile</h2>
-    
-    {% if profile.profile_image %}
-        <img src="{{ profile.profile_image.url }}" alt="Profile Image" style="width: 150px; height: 150px;">
-    {% else %}
-        <p>No profile image</p>
-    {% endif %}
-
-    {% if profile.bio %}
-        <p>Bio: {{ profile.bio }}</p>
-    {% else %}
-        <p>Please fill in your bio.</p>
-    {% endif %}
-</div> {% endcomment %}
-<div class="profile">
-{% if request.user.profile.profile_image %}
-    <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image">
-{% endif %}
-{% if request.user.profile.bio %}
-    <p>Bio: {{ request.user.profile.bio }}</p>
-{% else %}
-    <p>Please fill in your bio.</p>
-{% endif %}
-</div>
-<br>
-<br>
-<br>
-<br>
-<div class="edit-profile">
-    <h2>Edit Profile</h2>
-    <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Make Changes</button>
-    </form>
-</div>
-
-
 <body>
-    {% block content %}
-    <h1>Find Best Route</h1>
-    <form action="{% url 'display_best_route' %}" method="get">
-        <label for="start">Start Location:</label>
-        <input type="text" id="start" name="start" required>
+    {% include 'includes/navigation.html' %}
 
-        <label for="end">End Location:</label>
-        <input type="text" id="end" name="end" required>
-
-        <button type="submit">Find Route</button>
-    </form>
-
-    <hr>
-
-    <h2>Best Route Details</h2>
-    {% if route %}
-        <p><strong>From:</strong> {{ route.start_location }}</p>
-        <p><strong>To:</strong> {{ route.end_location }}</p>
-        <p><strong>Distance:</strong> {{ route.distance }} km</p>
-        <!-- You can add more details here -->
-    {% else %}
-        <p>No suitable route found.</p>
-    {% endif %}
-{% endblock %}
-    {% comment %} <h1>{{ driver.user.username }}'s Profile</h1>
-    <img src="{{ driver.profile_pic.url }}" alt="Profile Picture">
-    <p>Email: {{ driver.user.email }}</p>
-    <p>Bio: {{ driver.bio }}</p> {% endcomment %}
-    <!-- Other personal information -->
-
-
- 
-
-{% comment %} {% for driver in drivers %}
-    {% if driver.user and driver.user.id %}
-        <!-- If the driver has a profile, link to the update page -->
-        <a href="{% url 'update_driver_profile' driver.user.id %}">Update Profile</a>
-    {% else %}
-        <!-- If the driver doesn't have a profile, link to the create page -->
-        <a href="{% url 'create_driver_profile' %}">Create Profile</a>
-    {% endif %}
-{% endfor %} {% endcomment %}
-
-    <!-- Form to send message to superuser (simplified example) -->
-    {% comment %} <form method="post" action="{% url 'send_message' %}">
-        {% csrf_token %}
-        <textarea name="message" placeholder="Send a message to the superuser"></textarea>
-        <button type="submit">Send Message</button>
-    </form> {% endcomment %}
-    <footer>
-        <p>Copyright © Your Company | All rights reserved</p>
-    </footer>
+  
+  <div class="container mt-4"> 
+    <div class="profile">
+      {% if request.user.profile.profile_image %}
+        <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 200px; height: 200px;">
+      {% else %}
+          <p>No profile image</p>
+      {% endif %}
+      {% if request.user.profile.bio %}
+          <p>Bio: {{ request.user.profile.bio }}</p>
+      {% else %}
+          <p>Please fill in your bio.</p>
+      {% endif %}
+      <div class="edit-profile">
+        <h2>Edit Profile</h2>
+        <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Make Changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% block javascripts %}{% endblock javascripts %}
+  
+  {% include 'includes/scripts.html' %}
+  <footer class="mt-4"> <!-- Add Bootstrap class for margin-top -->
+    <div class="container">
+      <p>Copyright © Your Company | All rights reserved</p>
+    </div>
+  </footer>
 </body>
 </html>

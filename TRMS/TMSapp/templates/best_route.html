@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Best Route Details</title>
+    <!-- Include any required CSS or JS files here -->
+</head>
+<body>
+    <h1>Best Route Found</h1>
+    <!-- Display route details -->
+    <div class="route-details">
+        <h2>Route Information</h2>
+        <p><strong>Origin:</strong> {{ route.start_location }}</p>
+        <p><strong>Destination:</strong> {{ route.end_location }}</p>
+        <p><strong>Distance:</strong> {{ route.distance }} km</p>
+        <!-- Add more details as needed, such as estimated time, tolls, etc. -->
+
+        <h2>Weather Conditions</h2>
+        <!-- Display weather information related to the route -->
+        <p>The weather condition for your route is: {{ weather_condition }}</p>
+
+        <h2>Road Conditions</h2>
+        <!-- Display road condition information -->
+        <p>The road condition for your route is: {{ road_condition }}</p>
+
+        <h2>Overall Route Score</h2>
+        <p>The overall score for this route, based on various factors including weather and road conditions, is: {{ score }}</p>
+    </div>
+
+    <!-- Include any additional information or actions the user can take -->
+    <a href="{% url 'find_best_route' %}">Choose a different route</a>
+    <!-- or -->
+    <a href="{% url 'driver' %}">Return to the home page</a>
+</body>
+</html>

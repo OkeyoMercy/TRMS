@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calculate Route</h1>
+    
+    <form id="routeForm">
+        <label for="startPoint">Start Point:</label>
+        <input type="text" id="startPoint" name="start_point">
+        <label for="endPoint">End Point:</label>
+        <input type="text" id="endPoint" name="end_point">
+        <button type="submit">Calculate Route</button>
+    </form>
+    
+    <div id="map"></div>
+    
+    <!-- Add a div to display route information -->
+    <div id="routeInfo"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            var map = L.map('map').setView([-0.2814, 36.0662], 13); // Set initial view coordinates
+        
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+        
+            // Function to handle form submission
+            document.getElementById('routeForm').addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+        
+                // Get start and end points from form inputs
+                var startPoint = document.getElementById('startPoint').value;
+                var endPoint = document.getElementById('endPoint').value;
+        
+                fetchRoute(startPoint, endPoint);
+            });
+        
+            // Function to fetch route from Geoapify
+            function fetchRoute(startPoint, endPoint) {
+                const myAPIKey = "3137326edb344c3ab9f7745c2aa5d75a";
+
+                fetch(`https://api.geoapify.com/v1/routing?waypoints=${startPoint};${endPoint}&mode=drive&apiKey=${myAPIKey}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Extract coordinates from the route data
+                    var routeCoordinates = data.features[0].geometry.coordinates;
+
+                    // Transform the coordinates into the correct format
+                    var formattedCoordinates = routeCoordinates.map(coord => [coord[1], coord[0]]); // [longitude, latitude]
+
+                    // Create a polyline to draw the route on the map
+                    var polyline = L.polyline(formattedCoordinates, {color: 'blue'}).addTo(map);
+
+                    // Fit the map bounds to the route polyline
+                    map.fitBounds(polyline.getBounds());
+
+                    // Update the HTML to display route information
+                    var routeInfoHTML = "<h2>Route Information</h2>";
+                    routeInfoHTML += "<p>Distance: " + data.features[0].properties.distance + "</p>";
+                    routeInfoHTML += "<p>Time: " + data.features[0].properties.duration + "</p>";
+                    // Add more details as needed
+                    document.getElementById('routeInfo').innerHTML = routeInfoHTML;
+                })
+                .catch(error => {
+                    console.error('Error fetching route information:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

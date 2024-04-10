@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <style>
+        .profile {
+            /* Add your profile styling here */
+        }
+        .edit-profile {
+            /* Add your edit profile styling here */
+        }
+    </style>
+</head>
+<body>
+    <div class="profile">
+        {% if request.user.profile.profile_image %}
+            <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 200px; height: 200px;">
+        {% else %}
+            <p>No profile image</p>
+        {% endif %}
+        {% if request.user.profile.bio %}
+            <p>Bio: {{ request.user.profile.bio }}</p>
+        {% else %}
+            <p>Please fill in your bio.</p>
+        {% endif %}
+        <div class="edit-profile">
+            <h2>Edit Profile</h2>
+            <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Make Changes</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

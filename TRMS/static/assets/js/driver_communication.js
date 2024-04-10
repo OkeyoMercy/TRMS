@@ -4,6 +4,7 @@ socket.onopen = function(e) {
     console.log('Connection established!');
 };
 
+
 socket.onmessage = function(e) {
     var data = JSON.parse(e.data);
     var message = data['message'];

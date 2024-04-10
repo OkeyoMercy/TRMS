@@ -1,17 +1,19 @@
 import logging
 
 import requests
+import urllib3
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, update_session_auth_hash
+from django.contrib.auth import (authenticate, login, logout,
+                                 update_session_auth_hash)
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
@@ -19,7 +21,10 @@ from django.views.generic import CreateView
 from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
                     MessageForm, ProfileForm, TMSAdminstratorCreationForm)
 from .models import (Company, CustomUser, Driver, Message, Profile,
-                     RoadCondition, Route, Task, User, Weather)
+                     RoadCondition, Route, Task, Weather)
+#testing route
+from .utils import (calculate_route_score, fetch_road_condition_for_route,
+                    fetch_weather_for_route, get_route_now)
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +44,7 @@ def login_view(request):
                     elif user.groups.filter(name='Manager').exists():
                         return redirect('manager_dashboard')
                     elif user.groups.filter(name='Driver').exists():
-                        return redirect('driver_dashboard')
+                        return redirect('route_view')
                     else:
                         messages.error(request, 'No role assigned. Please contact the adminstrator.')
                 else:
@@ -53,6 +58,7 @@ def login_view(request):
 
 @login_required
 def dashboard_redirect(request):
+    received_messages = Message.objects.filter(recipient=request.user)
     if request.user.groups.filter(name='TMS Adminstrator').exists():
         return redirect('/admin/')
     elif request.user.groups.filter(name='Driver').exists():
@@ -103,7 +109,7 @@ def compose_message(request):
     if request.method == 'POST':
         body = request.POST.get('content')
         recipient_id = request.POST.get('receiver_id')
-        recipient = User.objects.get(id=recipient_id)
+        recipient = CustomUser.objects.get(id=recipient_id)
         Message.objects.create(sender=request.user, recipient=recipient, body=body)
         return redirect('inbox')
     return render(request, 'compose_message.html')
@@ -111,34 +117,40 @@ def compose_message(request):
 @login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
-    return render(request, 'inbox.html', {'received_messages': received_messages})
+    users= CustomUser.objects.exclude(id=request.user.id)
+    print(users)
+    return render(request, 'inbox.html', {'received_messages': received_messages, 'users':users})
+
 def profile(request):
+    
     profile, created = Profile.objects.get_or_create(user=request.user)
+    # print(profile)
     if request.method == 'POST':
         form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
         if form.is_valid ():
             form.save()
-            username = request.user.username
+            username = request.user.first_name
             messages.success(request, f'{username}, Your profile is updated.')
             return redirect('profile')
     else:
         form = ProfileForm(instance= request.user.profile)
     context = {'form':form}
-    return render (request,'driver.html', context)
+    print("The url is"+request.user.profile.profile_image.url)
+    return render (request,'driver.html', {'form':form})
 
 def compose_message(request):
-    admin_users = User.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
+    admin_users = CustomUser.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
 
     if request.method == 'POST':
         body = request.POST.get('body')
         recipient_id = request.POST.get('recipient_id')
 
         try:
-            recipient = User.objects.get(id=recipient_id)
+            recipient = CustomUser.objects.get(id=recipient_id)
             Message.objects.create(sender=request.user, recipient=recipient, body=body)
             messages.success(request, 'Message sent successfully.')
             return redirect('inbox')
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             messages.error(request, 'Recipient not found.')
             return redirect('inbox')
 
@@ -211,7 +223,7 @@ def driver_registration_view(request):
 
 def send_message_to_admin(request):
     logger.debug("Attempting to send a message to admin.")
-    admin_users = User.objects.filter(is_superuser=True)
+    admin_users = CustomUser.objects.filter(is_superuser=True)
     if request.method == 'POST':
         form = MessageForm(request.POST)
         if form.is_valid():
@@ -251,13 +263,13 @@ def send_notification(sender, instance, created, **kwargs):
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     sent_messages = Message.objects.filter(sender=request.user)
-    users = User.objects.exclude(id=request.user.id)
+    users = CustomUser.objects.exclude(id=request.user.id)
     return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users})
 
 @login_required
 def send_message(request, recipient_id):
     if request.method == 'POST':
-        recipient = User.objects.get(id=recipient_id)
+        recipient = CustomUser.objects.get(id=recipient_id)
         content = request.POST.get('content', '')
         message = Message.objects.create(sender=request.user, recipient=recipient, content=content)
         return render(request, 'send_messages.html', {'message_sent': True, 'recipient_id': recipient_id})
@@ -265,14 +277,50 @@ def send_message(request, recipient_id):
     print("Recipient ID:", recipient_id)
     return render(request, 'send_messages.html', {'recipient_id': recipient_id})
 
-
 def update_weather_for_route(route):
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={route.end_location}&appid={settings.OPENWEATHER_API_KEY}"
-    response = requests.get(url)
+    
+    if router.end_location and hasattr(settings, 'OPENWEATHER_API_KEY'):
+         url = f"http://api.openweathermap.org/data/2.5/weather?q={route.end_location}&appid={settings.OPENWEATHER_API_KEY}"
+    else: 
+         FileNotFoundError                  
+    
+    response = requests.get(urllib3)
     data = response.json()
     # Parse the data and update the Weather model
     weather_condition = data['weather'][0]['main']  # Simplified example
     Weather.objects.update_or_create(route=route, defaults={'condition': weather_condition})
+
+def calculate_best_route(request):
+    origin = request.GET.get('origin')
+    destination = request.GET.get('destination')
+    
+    # Fetch routes using a third-party API
+    routes = fetch_routes(origin, destination, settings.MAPBOX_API_KEY)
+
+    best_route = None
+    best_score = None
+
+    for route in routes['routes']:  # Assuming the API response includes a 'routes' list
+        # For simplicity, let's say each route has an 'id' you can use to fetch weather and road conditions
+        route_id = route['id']
+        
+        # Fetch weather and road conditions for this route (you'll need to implement these functions)
+        weather = fetch_weather_for_route(route_id)
+        road_condition = fetch_road_condition_for_route(route_id)
+        
+        # Calculate a score for the route (you'll need to implement this logic based on your criteria)
+        score = calculate_route_score(route, weather, road_condition)
+
+        if best_score is None or score < best_score:
+            best_score = score
+            best_route = route
+    
+    if best_route:
+        # Render a template with the best route information
+        return render(request, 'best_route.html', {'route': best_route})
+    else:
+        return HttpResponse("No suitable route found.")
+
 
 def display_best_route(request):
     if request.method == 'GET':
@@ -309,18 +357,121 @@ def display_best_route(request):
             return HttpResponse("Unable to determine the best route with the available data.", status=404)
 
         return render(request, 'best_route.html', {'route': best_route})
+
+def track (request):
+    tracking  = {
+        'vehicle_id': '123ABC',
+        'latitude': '40.7128',
+        'longitude': '-74.0060',
+        'timestamp': '2024-03-22 12:00:00'
+    }
+    return render (request,'tracking.html', {'tracking':tracking})
+
+def fetch_routes(origin, destination, api_key):
+    # Example using Mapbox Directions API
+    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{origin};{destination}"
+    params = {
+        "access_token": api_key,
+        "geometries": "geojson"
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        # Process and return relevant data from the response
+        return data
+    else:
+        # Log error or take appropriate action
+        print(f"Error fetching route data: {response.status_code}")
+        return None
+def find_best_route(request):
+    # Get origin and destination from request
+    origin = request.GET.get('origin')
+    destination = request.GET.get('destination')
+
+    # Fetch potential routes for the given origin and destination
+    potential_routes = Route.objects.filter(start_location=origin, end_location=destination)
+
+    if not potential_routes.exists():
+        return HttpResponse("No routes found for the given locations.")
+
+    best_route = None
+    best_score = float('inf')  # Initialize with infinity; lower scores are better
+
+    # Evaluate each potential route
+    for route in potential_routes:
+        # Fetch weather and road condition for the route
+        weather = fetch_weather_for_route(route.id)
+        road_condition = fetch_road_condition_for_route(route.id)
+
+        # Calculate a score for the route based on various factors
+        score = calculate_route_score(route, weather, road_condition)
+
+        # Determine if this is the best route so far
+        if score < best_score:
+            best_score = score
+            best_route = route
+
+    # Render a response based on the best route found
+    if best_route:
+        context = {'route': best_route, 'score': best_score}
+        return render(request, 'best_route.html', context)
+    else:
+        return HttpResponse("Unable to determine the best route.")
+
+def route_view(request):
+    user = request.user
+    received_messages = Message.objects.filter(recipient=request.user).order_by('-timestamp')[:4]
+    # Only proceed if both start and end locations are provided
+    if 'start' in request.GET and 'end' in request.GET:
+        start = request.GET['start']
+        end = request.GET['end']
+
+    return render(request, 'driver.html', {'user':user,'received_messages':received_messages})
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+def get_route(request):
+    api_key = settings.GEOAPIFY_API_KEY  # Assuming you've added this in your settings.py
+    start = request.GET.get('start', 'default_start')  # Replace 'default_start' with a default or error handling
+    end = request.GET.get('end', 'default_end')  # Replace 'default_end' with a default or error handling
     
-# @login_required
-# def password_change_view(request):
-#     if request.method == 'POST':
-#         form = CustomPasswordChangeForm(user=request.user, data=request.POST)
-#         if form.is_valid():
-#             user = form.save()
-#             update_session_auth_hash(request, user)  # Important!
-#             messages.success(request, 'Your password was successfully updated!')
-#             return redirect('change_password_done')  # Redirect to a success page
-#         else:
-#             messages.error(request, 'Please correct the error below.')
-#     else:
-#         form = CustomPasswordChangeForm(user=request.user)
-#     return render(request, 'change_password.html', {'form': form})
+    base_url = f'https://api.geoapify.com/v1/routing?waypoints={start}|{end}&mode=drive&apiKey={api_key}'
+
+    response = requests.get(base_url)  # Use 'base_url' instead of 'url'
+    if response.status_code == 200:
+        route_data = response.json()
+        
+        # Additional error handling for API-specific errors
+        if route_data.get('error'):
+            return JsonResponse({'error': 'Failed to fetch route data due to API error'}, status=500)
+        
+        return render(request, 'driver.html', {'route_data': route_data})
+    else:
+        return JsonResponse({'error': 'Failed to fetch route data'}, status=response.status_code)
+    
+    
+    
+    
+#testing route
+def render_route(request):
+    return render(request, 'routing.html')
+
+
+def profile_page(request):
+    
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    # print(profile)
+    if request.method == 'POST':
+        form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid ():
+            form.save()
+            username = request.user.first_name
+            messages.success(request, f'{username}, Your profile is updated.')
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance= request.user.profile)
+    context = {'form':form}
+    print("The url is"+request.user.profile.profile_image.url)
+    return render (request,'profile.html', {'form':form})
