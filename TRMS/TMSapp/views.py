@@ -3,7 +3,7 @@ import logging
 import requests
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -73,7 +73,6 @@ def tms_admin_dashboard(request):
 
 @login_required
 def manager_dashboard(request):
-    # Ensure the user is a Manager
     if not request.user.groups.filter(name='Manager').exists():
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
@@ -168,7 +167,7 @@ def tms_adminstrator_create_view(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Adminstrator registered successfully.')
-            return redirect('admin:add_tms_admin')
+            return redirect('add_tms_admin')
     else:
         form = TMSAdminstratorCreationForm()
     return render(request, 'admin/create_admin.html', {'form': form})
@@ -310,3 +309,18 @@ def display_best_route(request):
             return HttpResponse("Unable to determine the best route with the available data.", status=404)
 
         return render(request, 'best_route.html', {'route': best_route})
+    
+# @login_required
+# def password_change_view(request):
+#     if request.method == 'POST':
+#         form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+#         if form.is_valid():
+#             user = form.save()
+#             update_session_auth_hash(request, user)  # Important!
+#             messages.success(request, 'Your password was successfully updated!')
+#             return redirect('change_password_done')  # Redirect to a success page
+#         else:
+#             messages.error(request, 'Please correct the error below.')
+#     else:
+#         form = CustomPasswordChangeForm(user=request.user)
+#     return render(request, 'change_password.html', {'form': form})
