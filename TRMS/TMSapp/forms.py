@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -20,50 +19,47 @@ class ProfileForm(ModelForm):
         fields = '__all__'
         exclude = ['user']
 
-class TMSAdminstratorCreationForm(UserCreationForm):
+class TMSAdminstratorCreationForm(ModelForm):
     id_number = forms.CharField(max_length=20, required=True)
     driving_license_number = forms.CharField(max_length=20, required=True)
     email = forms.EmailField(required=True)
     region = forms.CharField(max_length=100, required=True)
+    phone_number = forms.CharField(max_length=15, required=True)
 
     class Meta:
-        model = get_user_model()  # Use get_user_model for flexibility
-        fields = ['first_name', 'middle_name', 'last_name', 'email', 'id_number', 'driving_license_number', 'region']
+        model = User  # Using the custom user model
+        fields = ['first_name', 'middle_name', 'last_name', 'email', 'id_number', 'driving_license_number', 'region', 'phone_number']
 
     def clean_id_number(self):
-        user_model = get_user_model()  # Use get_user_model for flexibility
-        if user_model.objects.filter(id_number=self.cleaned_data['id_number']).exists():
+        if User.objects.filter(id_number=self.cleaned_data['id_number']).exists():
             raise ValidationError("A user with this ID number already exists.")
         return self.cleaned_data['id_number']
 
     def clean_driving_license_number(self):
-        user_model = get_user_model()  # Use get_user_model for flexibility
-        if user_model.objects.filter(driving_license_number=self.cleaned_data['driving_license_number']).exists():
+        if User.objects.filter(driving_license_number=self.cleaned_data['driving_license_number']).exists():
             raise ValidationError("A user with this driving license number already exists.")
         return self.cleaned_data['driving_license_number']
 
     def clean_email(self):
-        user_model = get_user_model()  # Use get_user_model for flexibility
-        if user_model.objects.filter(email=self.cleaned_data['email']).exists():
+        if User.objects.filter(email=self.cleaned_data['email']).exists():
             raise ValidationError("A user with this email already exists.")
         return self.cleaned_data['email']
 
     def save(self, commit=True):
-        user = super(TMSAdminstratorCreationForm, self).save(commit=False)
+        user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+        user.phone_number = self.cleaned_data['phone_number']
+        user.role = 'TMS Administrator'  # Set the default role
+        user.set_password('changeme')  # Set default password
 
         if commit:
             user.save()
-            tms_admin_group, _ = Group.objects.get_or_create(name='TMS Adminstrator')
+            tms_admin_group, _ = Group.objects.get_or_create(name='TMS Administrator')
             user.groups.add(tms_admin_group)
-
-            # Only create a Profile if not handled by signals
+            # If the Profile creation is handled by signals, remove the below Profile creation
             if not hasattr(user, 'profile'):  # Check if a Profile already exists
-                Profile.objects.create(
-                    user=user,
-                    id_number=self.cleaned_data['id_number'],
-                    driving_license_number=self.cleaned_data.get('driving_license_number', '')
-                )
+                from .models import Profile  # Ensure you have this import
+                Profile.objects.create(user=user)
 
         return user
 
@@ -206,3 +202,7 @@ class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
         fields = ['sender','recipient']
+# class CustomPasswordChangeForm(PasswordChangeForm):
+#     class Meta:
+#         model = User
+#         fields = ('old_password', 'new_password1', 'new_password2')

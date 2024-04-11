@@ -7,7 +7,6 @@
             Transport Management<br>System (TMS)
         </a>
     </div>
-        
     <div class="sidebar-wrapper">
         <ul class="nav">
             {% if request.user.is_authenticated %}
@@ -18,21 +17,24 @@
                     </a>
                 </li>
 
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="material-icons">app_registration</i>
-                        <p>Registration</p>
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                        {% if request.user|has_group:"TMS Adminstrator" %}
-                            <a class="dropdown-item" href="{% url 'add_company' %}">Register Company</a>
-                            <a class="dropdown-item" href="{% url 'add_tms_admin' %}">Register TMS Adminstrator</a>
-                        {% endif %}
-                        {% if request.user|has_group:"Manager" %}
-                            <a class="dropdown-item" href="{% url 'add_driver' %}">Register A Driver</a>
-                        {% endif %}
-                    </div>
-                </li>
+    {% if request.user|has_group:"TMS Adminstrator" or request.user|has_group:"Manager" %}
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="material-icons">app_registration</i>
+                <p>Registration</p>
+            </a>
+            <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                {% if request.user|has_group:"TMS Adminstrator" %}
+                    <a class="dropdown-item" href="{% url 'add_company' %}">Register Company</a>
+                    <a class="dropdown-item" href="{% url 'add_tms_admin' %}">Register TMS Administrator</a>
+                {% endif %}
+                {% if request.user|has_group:"Manager" %}
+                    <a class="dropdown-item" href="{% url 'add_driver' %}">Register A Driver</a>
+                {% endif %}
+            </div>
+        </li>
+    {% endif %}
+
 
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMaps" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -52,7 +54,7 @@
                         <p>Settings</p>
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdownSettings">
-                        <a class="dropdown-item" href="/change-password">Change Password</a>
+                        <a class="dropdown-item" href="{% url 'change_password' %}">Change Password</a>
                         <!-- Additional dropdown items related to settings can be added here -->
                     </div>
                 </li>
