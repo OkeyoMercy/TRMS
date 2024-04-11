@@ -47,18 +47,19 @@ class TMSAdminstratorCreationForm(ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
+        user.is_staff = True 
         user.email = self.cleaned_data['email']
         user.phone_number = self.cleaned_data['phone_number']
-        user.role = 'TMS Administrator'  # Set the default role
+        user.role = 'TMS Adminstrator'  # Set the default role
         user.set_password('changeme')  # Set default password
 
         if commit:
             user.save()
-            tms_admin_group, _ = Group.objects.get_or_create(name='TMS Administrator')
+            tms_admin_group, _ = Group.objects.get_or_create(name='TMS Adminstrator')
             user.groups.add(tms_admin_group)
             # If the Profile creation is handled by signals, remove the below Profile creation
             if not hasattr(user, 'profile'):  # Check if a Profile already exists
-                from .models import Profile  # Ensure you have this import
+                from .models import Profile  # Ensure you have this impor
                 Profile.objects.create(user=user)
 
         return user

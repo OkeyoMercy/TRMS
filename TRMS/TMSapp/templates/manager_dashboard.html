@@ -30,9 +30,13 @@
     <div class="main-panel">
       {% include 'includes/navigation.html' %}
       <!-- End Navbar -->
-      <div id="profileComponentContainer" {% if not show_profile_component %}style="display: none;"{% endif %}>
-        {% include 'includes/profile_dashboard.html' %}
-    </div>
+      <div class="vitz_components">
+        <div class="profile-sidebar">
+          <div id="profileComponentContainer" {% if not show_profile_component %}style="display: none;"{% endif %}>
+            {% include 'includes/profile_dashboard.html' %}
+        </div>
+        </div>
+      </div>
       <div class="content">
         <div class="container-fluid">
           {%block content%}{%endblock content%}
