@@ -469,8 +469,7 @@ def get_route(request):
     
     
     
-    
-#testing route
+
 def render_route(request):
     return render(request, 'routing.html')
 
