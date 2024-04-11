@@ -28,24 +28,19 @@
 
 <body class="">
   <div class="wrapper ">
-
     {% include 'includes/sidebar.html' %}
-
     <div class="main-panel">
       {% include 'includes/navigation.html' %}
       <!-- End Navbar -->
-      <div class="vitz_components">
-        <div class="profile-sidebar">
-            {% include 'includes/profile_dashboard.html' %}
-          </div>
-      </div>
+      <div id="profileComponentContainer" {% if not show_profile_component %}style="display: none;"{% endif %}>
+        {% include 'includes/profile_dashboard.html' %}
+    </div>
       <div class="content">
         <div class="container-fluid">
-          {% comment %} {%block content%}{%endblock content%} {% endcomment %}
+          {%block content%}{%endblock content%}
         </div>
       </div>
       {% include 'includes/footer.html' %}
-
     </div>
   </div>
 
@@ -55,5 +50,6 @@
   {% include 'includes/scripts.html' %}
   <!-- Specific Page JS goes HERE  -->
   {% block javascripts %}{% endblock javascripts %}
+  <script src="{% static 'assets/js/main_dashboard.js' %}"></script>
 </body>
 </html>

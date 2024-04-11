@@ -169,7 +169,6 @@ def messages_view(request):
     received_messages = Message.objects.filter(recipient=request.user)
     return render(request, 'messages.html', {'received_messages': received_messages, 'show_profile_component': False})
 
-
 @login_required
 def tms_adminstrator_create_view(request):
     if request.method == 'POST':
