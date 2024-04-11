@@ -16,10 +16,13 @@ def create_tms_admin():
         email='admin@example.com',
         password='adminpass',
         first_name='Vitalis',
+        middle_name='Ibrahim',
         last_name='Amakalu',
         id_number='40878151',
         driving_license_number='DL123456',
         phone_number='0743720033',
+        region='National',
+        role='TMS Adminstrator',
         is_staff=True,
         is_superuser=True
     )

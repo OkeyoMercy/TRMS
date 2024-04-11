@@ -54,7 +54,7 @@ def login_view(request):
                 messages.error(request, 'Invalid username or password.')
     else:
         form = LoginForm()
-    return render(request, 'login.html', {'form': form})
+    return render(request, 'login.html', {'form': form,'show_profile_component': False})
 
 @login_required
 def dashboard_redirect(request):
@@ -75,14 +75,14 @@ def tms_admin_dashboard(request):
     if not request.user.is_staff:
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
-    return render(request, '/admin/')
+    return render(request, '/admin/', {'show_profile_component': True})
 
 @login_required
 def manager_dashboard(request):
     if not request.user.groups.filter(name='Manager').exists():
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
-    return render(request, 'manager_dashboard.html')
+    return render(request, 'manager_dashboard.html', {'show_profile_component': True})
 
 @login_required
 def driver_dashboard(request):
@@ -90,12 +90,12 @@ def driver_dashboard(request):
     if not request.user.groups.filter(name='Driver').exists():
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
-    return render(request, 'driver_dashboard.html')
+    return render(request, 'driver_dashboard.html', {'show_profile_component': True})
 
 @login_required
 def driver_detail(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
-    return render(request, 'driver_detail.html', {'driver': driver})
+    return render(request, 'driver_detail.html', {'driver': driver, 'show_profile_component': True})
 
 @login_required
 def driver_delete(request, pk):
@@ -103,7 +103,7 @@ def driver_delete(request, pk):
     if request.method == 'POST':
         driver.delete()
         return redirect('driver_list')
-    return render(request, 'driver_confirm_delete.html', {'driver': driver})
+    return render(request, 'driver_confirm_delete.html', {'driver': driver, 'show_profile_component': False})
 
 def compose_message(request):
     if request.method == 'POST':
@@ -112,17 +112,16 @@ def compose_message(request):
         recipient = CustomUser.objects.get(id=recipient_id)
         Message.objects.create(sender=request.user, recipient=recipient, body=body)
         return redirect('inbox')
-    return render(request, 'compose_message.html')
+    return render(request, 'compose_message.html', {'show_profile_component': False})
 
 @login_required
 def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     users= CustomUser.objects.exclude(id=request.user.id)
     print(users)
-    return render(request, 'inbox.html', {'received_messages': received_messages, 'users':users})
+    return render(request, 'inbox.html', {'received_messages': received_messages, 'users':users, 'show_profile_component': False})
 
 def profile(request):
-    
     profile, created = Profile.objects.get_or_create(user=request.user)
     # print(profile)
     if request.method == 'POST':
@@ -136,11 +135,10 @@ def profile(request):
         form = ProfileForm(instance= request.user.profile)
     context = {'form':form}
     print("The url is"+request.user.profile.profile_image.url)
-    return render (request,'driver.html', {'form':form})
+    return render (request,'driver_dashboard.html', {'form':form, 'show_profile_component': False})
 
 def compose_message(request):
     admin_users = CustomUser.objects.filter(is_staff=True, is_superuser=True) # Get all users except the current user
-
     if request.method == 'POST':
         body = request.POST.get('body')
         recipient_id = request.POST.get('recipient_id')
@@ -154,7 +152,7 @@ def compose_message(request):
             messages.error(request, 'Recipient not found.')
             return redirect('inbox')
 
-    return render(request, 'compose_message.html')
+    return render(request, 'compose_message.html', {'show_profile_component': False})
 
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -164,12 +162,12 @@ def create_user_profile(sender, instance, created, **kwargs):
 @login_required
 def tasks_view(request):
     tasks = Task.objects.filter(driver=request.user)
-    return render(request, 'tasks.html', {'tasks': tasks})
+    return render(request, 'tasks.html', {'tasks': tasks, 'show_profile_component': False})
 
 @login_required
 def messages_view(request):
     received_messages = Message.objects.filter(recipient=request.user)
-    return render(request, 'messages.html', {'received_messages': received_messages})
+    return render(request, 'messages.html', {'received_messages': received_messages, 'show_profile_component': False})
 
 
 @login_required
@@ -182,7 +180,7 @@ def tms_adminstrator_create_view(request):
             return redirect('add_tms_admin')
     else:
         form = TMSAdminstratorCreationForm()
-    return render(request, 'admin/create_admin.html', {'form': form})
+    return render(request, 'admin/create_admin.html', {'form': form,'show_profile_component': False})
 
 
 @login_required
@@ -198,7 +196,7 @@ def company_creation_view(request):
             return redirect('add_company')
     else:
         form = CompanyManagerForm()
-    return render(request, 'admin/register_company.html', {'form': form})
+    return render(request, 'admin/register_company.html', {'form': form, 'show_profile_component': False})
 
 @login_required
 def driver_registration_view(request):
@@ -219,7 +217,7 @@ def driver_registration_view(request):
         messages.success(request, 'Driver registered successfully.')
         return redirect('add_driver')  # Redirect to the list of drivers
 
-    return render(request, 'register_driver.html', {'form': form})
+    return render(request, 'register_driver.html', {'form': form, 'show_profile_component': False})
 
 def send_message_to_admin(request):
     logger.debug("Attempting to send a message to admin.")
@@ -240,12 +238,12 @@ def send_message_to_admin(request):
                 pass
     else:
         form = MessageForm()
-    return render(request, 'send_message_to_admin.html', {'form': form})
+    return render(request, 'send_message_to_admin.html', {'form': form, 'show_profile_component': False})
 
 def admin_inbox(request):
     if request.user.is_superuser:
         inbox_messages = Message.objects.filter(recipient=request.user)
-        return render(request, 'admin_inbox.html', {'inbox_messages': inbox_messages})
+        return render(request, 'admin_inbox.html', {'inbox_messages': inbox_messages, 'show_profile_component': False})
     else:
         # Redirect the user to the home page or another appropriate page
         return HttpResponseForbidden("You are not authorized to view this page.")
@@ -264,7 +262,7 @@ def inbox(request):
     received_messages = Message.objects.filter(recipient=request.user)
     sent_messages = Message.objects.filter(sender=request.user)
     users = CustomUser.objects.exclude(id=request.user.id)
-    return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users})
+    return render(request, 'inbox.html', {'received_messages': received_messages, 'sent_messages': sent_messages, 'users': users, 'show_profile_component': False})
 
 @login_required
 def send_message(request, recipient_id):
@@ -272,17 +270,17 @@ def send_message(request, recipient_id):
         recipient = CustomUser.objects.get(id=recipient_id)
         content = request.POST.get('content', '')
         message = Message.objects.create(sender=request.user, recipient=recipient, content=content)
-        return render(request, 'send_messages.html', {'message_sent': True, 'recipient_id': recipient_id})
+        return render(request, 'send_messages.html', {'message_sent': True, 'recipient_id': recipient_id, 'show_profile_component': False})
     # Added the following for debugging
     print("Recipient ID:", recipient_id)
-    return render(request, 'send_messages.html', {'recipient_id': recipient_id})
+    return render(request, 'send_messages.html', {'recipient_id': recipient_id, 'show_profile_component': False})
 
 def update_weather_for_route(route):
     
     if router.end_location and hasattr(settings, 'OPENWEATHER_API_KEY'):
          url = f"http://api.openweathermap.org/data/2.5/weather?q={route.end_location}&appid={settings.OPENWEATHER_API_KEY}"
-    else: 
-         FileNotFoundError                  
+    else:
+         FileNotFoundError
     
     response = requests.get(urllib3)
     data = response.json()
@@ -300,8 +298,7 @@ def calculate_best_route(request):
     best_route = None
     best_score = None
 
-    for route in routes['routes']:  # Assuming the API response includes a 'routes' list
-        # For simplicity, let's say each route has an 'id' you can use to fetch weather and road conditions
+    for route in routes['routes']:
         route_id = route['id']
         
         # Fetch weather and road conditions for this route (you'll need to implement these functions)
@@ -317,7 +314,7 @@ def calculate_best_route(request):
     
     if best_route:
         # Render a template with the best route information
-        return render(request, 'best_route.html', {'route': best_route})
+        return render(request, 'best_route.html', {'route': best_route,'show_profile_component': False})
     else:
         return HttpResponse("No suitable route found.")
 
@@ -356,7 +353,7 @@ def display_best_route(request):
         if not best_route:
             return HttpResponse("Unable to determine the best route with the available data.", status=404)
 
-        return render(request, 'best_route.html', {'route': best_route})
+        return render(request, 'best_route.html', {'route': best_route, 'show_profile_component': False})
 
 def track (request):
     tracking  = {
@@ -365,7 +362,7 @@ def track (request):
         'longitude': '-74.0060',
         'timestamp': '2024-03-22 12:00:00'
     }
-    return render (request,'tracking.html', {'tracking':tracking})
+    return render (request,'tracking.html', {'tracking':tracking, 'show_profile_component': False})
 
 def fetch_routes(origin, destination, api_key):
     # Example using Mapbox Directions API
@@ -414,7 +411,7 @@ def find_best_route(request):
     # Render a response based on the best route found
     if best_route:
         context = {'route': best_route, 'score': best_score}
-        return render(request, 'best_route.html', context)
+        return render(request, 'best_route.html', context,{'show_profile_component': False} )
     else:
         return HttpResponse("Unable to determine the best route.")
 
@@ -426,11 +423,7 @@ def route_view(request):
         start = request.GET['start']
         end = request.GET['end']
 
-    return render(request, 'driver.html', {'user':user,'received_messages':received_messages})
-
-def logout_view(request):
-    logout(request)
-    return redirect('login')
+    return render(request, 'driver_dashboard.html', {'user':user,'received_messages':received_messages, 'show_profile_component': False})
 
 def get_route(request):
     api_key = settings.GEOAPIFY_API_KEY  # Assuming you've added this in your settings.py
@@ -447,7 +440,7 @@ def get_route(request):
         if route_data.get('error'):
             return JsonResponse({'error': 'Failed to fetch route data due to API error'}, status=500)
         
-        return render(request, 'driver.html', {'route_data': route_data})
+        return render(request, 'driver_dashboard.html', {'route_data': route_data})
     else:
         return JsonResponse({'error': 'Failed to fetch route data'}, status=response.status_code)
     
@@ -456,13 +449,11 @@ def get_route(request):
     
 #testing route
 def render_route(request):
-    return render(request, 'routing.html')
+    return render(request, 'routing.html', {'show_profile_component': False})
 
 
 def profile_page(request):
-    
     profile, created = Profile.objects.get_or_create(user=request.user)
-    # print(profile)
     if request.method == 'POST':
         form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
         if form.is_valid ():
@@ -474,4 +465,10 @@ def profile_page(request):
         form = ProfileForm(instance= request.user.profile)
     context = {'form':form}
     print("The url is"+request.user.profile.profile_image.url)
-    return render (request,'profile.html', {'form':form})
+    return render (request,'profile.html', {'form':form, 'show_profile_component': False})
+
+def dashboard_view(request):
+    context = {
+        'show_profile_component': 'true',
+    }
+    return render(request, 'dashboard.html', context, {'show_profile_component': False})

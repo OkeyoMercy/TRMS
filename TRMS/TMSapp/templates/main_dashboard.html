@@ -1,0 +1,9 @@
+{% extends 'manager_dashboard.html' %}
+{% block content %}
+  <input type="hidden" id="showProfileComponentFlag" value="{{ show_profile_component|default:'false' }}">
+  <div class="vitz_components">
+    <div class="profile-sidebar">
+        {% include 'includes/profile_dashboard.html' %}
+    </div>
+  </div>
+{% endblock content %}

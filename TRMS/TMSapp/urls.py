@@ -6,7 +6,7 @@ from django.views.generic.base import TemplateView
 from . import views
 from .views import (company_creation_view, compose_message, dashboard_redirect,
                     display_best_route, driver_dashboard,
-                    driver_registration_view, inbox, login_view, logout_view,
+                    driver_registration_view, inbox, login_view,
                     manager_dashboard, messages_view, profile, profile_page,
                     render_route, route_view, send_message, tasks_view,
                     tms_admin_dashboard, tms_adminstrator_create_view)
@@ -17,8 +17,8 @@ urlpatterns = [
     path('add_driver/', driver_registration_view, name='add_driver'),
     path('add_company/', company_creation_view, name='add_company'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('tms_admin_dashboard/', tms_admin_dashboard, name='tms_admin_dashboard'),
     path('add_tms_admin/', tms_adminstrator_create_view, name='add_tms_admin'),
+    path('tms_admin_dashboard/', tms_admin_dashboard, name='tms_admin_dashboard'),
     path('manager_dashboard/', manager_dashboard, name='manager_dashboard'),
     path('driver_dashboard/', driver_dashboard, name='driver_dashboard'),
     path('change_password/', PasswordChangeView.as_view(template_name='change_password.html', success_url='/change-password-done/'), name='change_password'),
@@ -44,5 +44,4 @@ urlpatterns = [
     path('best-route/', display_best_route, name='display_best_route'),
     path('profiles/', profile_page, name='profile_page'),
     path('render-route/', render_route, name='render_route'),
-    path('logout', logout_view, name='logout'),
 ]

@@ -12827,4 +12827,33 @@ Copyright (c) 2015 Daniel Eden
   .sidebar .navbar-form {
     display: none !important; } }
 
+    .vitz_components {
+      display: flex;
+      margin-top: 80px;
+      margin-left: 25px;
+    }
+    
+    .profile-sidebar {
+      width: 100%;
+      max-width: 600px;
+      margin-right: 20px;
+    }
+    .profile-pic-container:hover .change-pic-btn {
+      display: block;
+  }
+  
+  .change-pic-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+      opacity: 0.8;
+  }
+  
+  .change-pic-btn:hover {
+      opacity: 1;
+  }
+  
 /*# sourceMappingURL=material-dashboard.css.map */
