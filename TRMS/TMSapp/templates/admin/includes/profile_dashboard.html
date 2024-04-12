@@ -1,0 +1,22 @@
+{% load group_tags%}
+        <div class="profile-component" style="display: flex; align-items: center; width: 100%; max-width: 600px; border: 1px solid #ddd; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div class="profile-pic" style="flex: 0 0 auto; text-align: center; margin-right: 20px; position: relative;">
+            <img src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+            <div style="margin-top: 10px;">
+                <a href="{% url 'profile_page' %}" class="btn btn-primary" style="padding: 2px 5px; font-size: 12px;">Edit</a>
+            </div>
+        </div>
+        <div class="profile-details" style="flex: 1;">
+        <p><strong>Name:</strong> {{ request.user.first_name }} {{ request.user.middle_name|default_if_none:"" }} {{ request.user.last_name }}</p>
+        <p><strong>ID Number:</strong> {{ request.user.id_number }}</p>
+        <p><strong>Driving License Number:</strong> {{ request.user.driving_license_number }}</p>
+        <p><strong>Email:</strong> {{ request.user.email }}</p>
+        <p><strong>Role:</strong> {{ request.user.role }}</p>
+        {% if request.user|has_group:"Manager" or request.user|has_group:"Driver" %}
+        <p><strong>Company:</strong> {{ request.user.company.name }}</p>
+        {%endif%}
+        {% if request.user|has_group:"TMS Adminstrator" %}
+        <p><strong>Region:</strong> {{ request.user.region }}</p>
+        {%endif%}
+    </div>
+</div>

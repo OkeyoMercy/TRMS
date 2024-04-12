@@ -11,7 +11,7 @@
         {% else %}
           <img id="profilePicPreview" src="{% static 'default-profile.png' %}" alt="No Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
         {% endif %}
-        <form id="profileImageForm" method="post" enctype="multipart/form-data" action="{% url 'profile_page' %}" style="display: inline;">
+        <form id="profileImageForm" method="post" enctype="multipart/form-data" action="{% url 'profile_page'%}" style="display: inline;">
           {% csrf_token %}
           <label for="profilePicInput" class="change-profile-pic" style="cursor: pointer; display: block; margin-top: 10px; color: #007bff; text-decoration: underline;">
             Change Profile Picture
@@ -20,7 +20,7 @@
           <button type="submit" class="btn btn-primary" style="display: none; margin-top: 10px;" id="saveImageButton">Save Image</button>
         </form>
       </div>
-  <p>Name: {{ request.user.get_full_name }}</p>
+  <p>Name: {{ request.user.first_name }} {{ request.user.middle_name }} {{ request.user.last_name }}</p>
   <p>Email: {{ request.user.email }}</p>
   <p>ID number: {{ request.user.id_number }}</p>
   <p>Driving license number: {{ request.user.driving_license_number }}</p>

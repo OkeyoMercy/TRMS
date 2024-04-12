@@ -10,12 +10,12 @@
     <div class="sidebar-wrapper">
         <ul class="nav">
             {% if request.user.is_authenticated %}
-                <li class="nav-item {% if 'index' in segment %} active {% endif %}">
-                    <a class="nav-link" href="{% url 'dashboard_redirect' %}">
-                        <i class="material-icons">dashboard</i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
+            <li class="nav-item {% if 'index' in segment %} active {% endif %}">
+                <a class="nav-link" href="{% url 'dashboard_redirect' %}" data-toggle-profile>
+                    <i class="material-icons">dashboard</i>
+                    <p>Dashboard</p>
+                </a>
+            </li>
 
     {% if request.user|has_group:"TMS Adminstrator" or request.user|has_group:"Manager" %}
         <li class="nav-item dropdown">

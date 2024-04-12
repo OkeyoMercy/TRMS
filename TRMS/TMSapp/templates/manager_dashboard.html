@@ -45,13 +45,11 @@
       {% include 'includes/footer.html' %}
     </div>
   </div>
-
-  {% include 'includes/fixed-plugin.html' %}
-
+  {% comment %} {% include 'includes/fixed-plugin.html' %} {% endcomment %}
   {% include 'includes/scripts-sidebar.html' %}
   {% include 'includes/scripts.html' %}
   <!-- Specific Page JS goes HERE  -->
   {% block javascripts %}{% endblock javascripts %}
-  <script src="{% static 'assets/js/main_dashboard.js' %}"></script>
+  {% comment %} <script src="{% static 'assets/js/main_dashboard.js' %}"></script> {% endcomment %}
 </body>
 </html>

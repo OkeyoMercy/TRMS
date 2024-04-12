@@ -1,0 +1,45 @@
+{% extends 'driver_dashboard.html' %}
+{% load group_tags %}
+{% load static %}
+
+{% block content %}
+<h2>Edit Profile</h2>
+<div class="profile" style="text-align: left;">
+    <div class="profile-pic">
+        {% if request.user.profile.profile_image %}
+          <img id="profilePicPreview" src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
+        {% else %}
+          <img id="profilePicPreview" src="{% static 'default-profile.png' %}" alt="No Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
+        {% endif %}
+        <form id="profileImageForm" method="post" enctype="multipart/form-data" action="{% url 'dprofile_page' %}" style="display: inline;">
+          {% csrf_token %}
+          <label for="profilePicInput" class="change-profile-pic" style="cursor: pointer; display: block; margin-top: 10px; color: #007bff; text-decoration: underline;">
+            Change Profile Picture
+          </label>
+          <input type="file" id="profilePicInput" name="profile_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
+          <button type="submit" class="btn btn-primary" style="display: none; margin-top: 10px;" id="saveImageButton">Save Image</button>
+        </form>
+      </div>
+  <p>Name: {{ request.user.first_name }} {{ request.user.middle_name }} {{ request.user.last_name }}</p>
+  <p>Email: {{ request.user.email }}</p>
+  <p>ID number: {{ request.user.id_number }}</p>
+  <p>Driving license number: {{ request.user.driving_license_number }}</p>
+  <p>Phone number: {{ request.user.phone_number }}</p>
+  <p>Region: {{ request.user.region }}</p>
+  <p>Role: {{ request.user.role }}</p>
+  {% if request.user.company %}
+    <p>Company: {{ request.user.company.name }}</p>
+  {% endif %}
+</div>
+<script>
+    function previewImage(event) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        var output = document.getElementById('profilePicPreview');
+        output.src = reader.result;
+        document.getElementById('saveImageButton').style.display = 'block'; // Show the save button
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+  </script>
+{% endblock content %}

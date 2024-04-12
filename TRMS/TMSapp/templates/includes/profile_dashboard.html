@@ -7,7 +7,7 @@
             </div>
         </div>
         <div class="profile-details" style="flex: 1;">
-        <p><strong>Name:</strong> {{ request.user.first_name }} {{ request.user.middle_name|default_if_none:"" }} {{ request.user.last_name }}</p>
+        <p><strong>Name:</strong> {{ request.user.first_name }} {{ request.user.middle_name|default_if_none:""}} {{ request.user.last_name }}</p>
         <p><strong>ID Number:</strong> {{ request.user.id_number }}</p>
         <p><strong>Driving License Number:</strong> {{ request.user.driving_license_number }}</p>
         <p><strong>Email:</strong> {{ request.user.email }}</p>
