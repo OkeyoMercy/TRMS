@@ -5,7 +5,7 @@ from django.views.generic.base import TemplateView
 
 from . import views
 from .views import (company_creation_view, compose_message, dashboard_redirect,
-                    display_best_route, driver_dashboard,
+                    display_best_route, dprofile_page, driver_dashboard,
                     driver_registration_view, inbox, login_view,
                     manager_dashboard, messages_view, profile, profile_page,
                     render_route, route_view, send_message, tasks_view,
@@ -43,5 +43,6 @@ urlpatterns = [
     path('send_message/<int:recipient_id>/', send_message, name='send_message'),
     path('best-route/', display_best_route, name='display_best_route'),
     path('profiles/', profile_page, name='profile_page'),
+    path('dprofiles/', dprofile_page, name='dprofile_page'),
     path('render-route/', render_route, name='render_route'),
 ]

@@ -33,7 +33,7 @@
                   <p class="d-lg-none d-md-block">Route</p>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownRoute">
-                  // A url for the page with the Map and url to a page with previous routes that ever been used by the user
+                  {% comment %} // A url for the page with the Map and url to a page with previous routes that ever been used by the user {% endcomment %}
                   <a class="dropdown-item" href="{% url 'render_route' %}">Search for a new route</a>
                   <a class="dropdown-item" href="{% url 'track' %}">Check your location</a>
                 </div>

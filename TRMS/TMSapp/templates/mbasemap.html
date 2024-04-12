@@ -1,0 +1,164 @@
+{% extends 'manager_dashboard.html' %}
+
+{% block content%}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<div id="control-panel" style="padding: 10px; background-color: white; border-radius: 5px; position: absolute; top: 10px; bottom:0px left: 10px; z-index: 1000;">
+    <label>Start Lat:</label>
+    <input type="text" id="startLat" placeholder="Latitude" />
+    <label>Start Lon:</label>
+    <input type="text" id="startLon" placeholder="Longitude" />
+    <label>End Lat:</label>
+    <input type="text" id="endLat" placeholder="Latitude" />
+    <label>End Lon:</label>
+    <input type="text" id="endLon" placeholder="Longitude" />
+    <button onclick="calculateRoute()">Generate Route</button>
+</div>
+<div id="map" style="width: 100%; height: 400px;"></div>
+<div style="padding: 10px; background-color: white; border-radius: 5px; position: absolute; bottom: 100px; left: 10px; z-index: 1000;">
+    <label for="unit-selector">Choose units:</label>
+    <select id="unit-selector">
+        <option value="meters">Meters</option>
+        <option value="kilometers">Kilometers</option>
+        <option value="miles">Miles</option>
+    </select>
+    <div id="distance-display">Distance: N/A</div>
+</div>
+
+<script>
+    var map = L.map('map').setView([38.937165, -77.045590], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const apiKey = "741d0d2af1464218a70179a5d91f08f1";
+    let waypoints = [];
+    let lastRouteLayer = null;
+
+    map.on('click', function(e) {
+        if (waypoints.length >= 2) {
+            clearWaypoints();
+        }
+
+        reverseGeocode(e.latlng.lat, e.latlng.lng, function(placeName) {
+            L.marker(e.latlng).addTo(map)
+                .bindPopup(`Selected: ${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}<br>Place: ${placeName}`).openPopup();
+            waypoints.push(e.latlng);
+
+            if (waypoints.length === 1) {
+                document.getElementById('startLat').value = e.latlng.lat.toFixed(6);
+                document.getElementById('startLon').value = e.latlng.lng.toFixed(6);
+            } else if (waypoints.length === 2) {
+                document.getElementById('endLat').value = e.latlng.lat.toFixed(6);
+                document.getElementById('endLon').value = e.latlng.lng.toFixed(6);
+                calculateRoute();
+            }
+        });
+    });
+
+    function reverseGeocode(lat, lng, callback) {
+        const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&apiKey=${apiKey}`;
+        fetch(url).then(response => response.json()).then(result => {
+            if (result.features && result.features.length > 0) {
+                const placeName = result.features[0].properties.formatted;
+                callback(placeName);
+            } else {
+                callback("Unknown location");
+            }
+        }).catch(error => {
+            console.error('Error fetching place name:', error);
+            callback("Error retrieving location");
+        });
+    }
+
+    function clearWaypoints() {
+        map.eachLayer(function (layer) {
+            if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                map.removeLayer(layer);
+            }
+        });
+        waypoints = [];
+        document.getElementById('startLat').value = '';
+        document.getElementById('startLon').value = '';
+        document.getElementById('endLat').value = '';
+        document.getElementById('endLon').value = '';
+        document.getElementById('distance-display').textContent = 'Distance: N/A';
+    }
+
+    function calculateRoute() {
+        const fromLat = document.getElementById('startLat').value;
+        const fromLon = document.getElementById('startLon').value;
+        const toLat = document.getElementById('endLat').value;
+        const toLon = document.getElementById('endLon').value;
+        
+        if (fromLat && fromLon && toLat && toLon) {
+            fetchRouteAndDisplay(fromLat, fromLon, toLat, toLon);
+        } else {
+            alert('Please select valid coordinates for both start and end points.');
+        }
+    }
+
+    function fetchRouteAndDisplay(fromLat, fromLon, toLat, toLon) {
+        const apiKey = "741d0d2af1464218a70179a5d91f08f1";
+        const waypoints = `${fromLat},${fromLon}|${toLat},${toLon}`;
+        const url = `https://api.geoapify.com/v1/routing?waypoints=${waypoints}&mode=drive&details=instruction_details&apiKey=${apiKey}`;
+
+        fetch(url).then(response => response.json()).then(result => {
+            if (lastRouteLayer) map.removeLayer(lastRouteLayer);  // Remove the previous route
+            lastRouteLayer = L.geoJSON(result, {
+                style: () => ({ color: "rgba(20, 137, 255, 0.7)", weight: 5 }),
+                onEachFeature: function (feature, layer) {
+                    const distance = feature.properties.distance;
+                    const units = document.getElementById('unit-selector').value;
+                    let distanceDisplay = `${distance} meters`;  // Default to meters
+                    if (units === 'kilometers') {
+                        distanceDisplay = `${(distance / 1000).toFixed(2)} kilometers`;
+                    } else if (units === 'miles') {
+                        distanceDisplay = `${(distance / 1609.34).toFixed(2)} miles`;
+                    }
+                    layer.bindPopup(distanceDisplay);
+                    document.getElementById('distance-display').textContent = 'Distance: ' + distanceDisplay;
+                }
+            }).addTo(map);
+        }).catch(error => console.error('Error fetching route:', error));
+    }
+    function addTurnByTurnInstructions(routeResult) {
+        const turnByTurns = [];
+        routeResult.features.forEach(feature => {
+            feature.properties.legs.forEach((leg, legIndex) => {
+                leg.steps.forEach(step => {
+                    const pointFeature = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": feature.geometry.coordinates[step.from_index]
+                        },
+                        "properties": {
+                            "instruction": step.instruction.text
+                        }
+                    };
+                    turnByTurns.push(pointFeature);
+                });
+            });
+        });
+    
+        L.geoJSON({
+            type: "FeatureCollection",
+            features: turnByTurns
+        }, {
+            pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 5, fillColor: "#ff7800", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 }),
+            onEachFeature: (feature, layer) => layer.bindPopup(feature.properties.instruction)
+        }).addTo(map);
+    }
+</script>
+{% endblock%}
+
+
+
+
+
+
+
+

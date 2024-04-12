@@ -13,9 +13,10 @@ from django.core.mail import send_mail
 from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import (HttpResponse, HttpResponseForbidden,
+                         HttpResponseRedirect, JsonResponse)
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.views.generic import CreateView
 
 from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
@@ -58,9 +59,9 @@ def login_view(request):
 
 @login_required
 def dashboard_redirect(request):
-    received_messages = Message.objects.filter(recipient=request.user)
+    request.session['show_profile_component'] = True
     if request.user.groups.filter(name='TMS Adminstrator').exists():
-        return redirect('/admin/')
+        return redirect('tms_admin_dashboard')
     elif request.user.groups.filter(name='Driver').exists():
         return redirect('driver_dashboard')
     elif request.user.groups.filter(name='Manager').exists():
@@ -71,31 +72,33 @@ def dashboard_redirect(request):
 
 @login_required
 def tms_admin_dashboard(request):
-    # Ensure the user is a TMS Adminstrator
     if not request.user.is_staff:
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
-    return render(request, '/admin/', {'show_profile_component': True})
+    show_profile_component = request.session.get('show_profile_component', False)
+    return render(request, 'admin/base.html', {'show_profile_component': show_profile_component})
 
 @login_required
 def manager_dashboard(request):
     if not request.user.groups.filter(name='Manager').exists():
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
-    return render(request, 'manager_dashboard.html', {'show_profile_component': True})
+    show_profile_component = request.session.get('show_profile_component', False)
+    return render(request, 'manager_dashboard.html', {'show_profile_component': show_profile_component})
 
 @login_required
 def driver_dashboard(request):
-    # Ensure the user is a Driver
     if not request.user.groups.filter(name='Driver').exists():
         messages.error(request, "You don't have permission to access this page.")
         return redirect('login')
-    return render(request, 'driver_dashboard.html', {'show_profile_component': True})
+    show_profile_component = request.session.get('show_profile_component', False)
+    return render(request, 'driver_dashboard.html', {'show_profile_component': show_profile_component})  # Adjust the template path as needed
 
 @login_required
 def driver_detail(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
-    return render(request, 'driver_detail.html', {'driver': driver, 'show_profile_component': True})
+    show_profile_component = request.session.get('show_profile_component', False)
+    return render(request, 'driver_detail.html', {'driver': driver, 'show_profile_component': show_profile_component})
 
 @login_required
 def driver_delete(request, pk):
@@ -181,7 +184,6 @@ def tms_adminstrator_create_view(request):
         form = TMSAdminstratorCreationForm()
     return render(request, 'admin/create_admin.html', {'form': form,'show_profile_component': False})
 
-
 @login_required
 @transaction.atomic
 def company_creation_view(request):
@@ -215,7 +217,6 @@ def driver_registration_view(request):
         form.save()
         messages.success(request, 'Driver registered successfully.')
         return redirect('add_driver')  # Redirect to the list of drivers
-
     return render(request, 'register_driver.html', {'form': form, 'show_profile_component': False})
 
 def send_message_to_admin(request):
@@ -448,26 +449,50 @@ def get_route(request):
     
 #testing route
 def render_route(request):
-    return render(request, 'routing.html', {'show_profile_component': False})
+    return render(request, 'mbasemap.html', {'show_profile_component': False})
 
 
 def profile_page(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
-        form =ProfileForm(request.POST, request.FILES, instance=request.user.profile)
-        if form.is_valid ():
+        form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid():
             form.save()
             username = request.user.first_name
-            messages.success(request, f'{username}, Your profile is updated.')
-            return redirect('profile')
+            messages.success(request, f'{username}, your profile has been updated.')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
-        form = ProfileForm(instance= request.user.profile)
-    context = {'form':form}
-    print("The url is"+request.user.profile.profile_image.url)
-    return render (request,'profile.html', {'form':form, 'show_profile_component': False})
+        form = ProfileForm(instance=request.user.profile)
+    
+    return render(request, 'profile.html', {'form': form, 'show_profile_component': False})
+
+def dprofile_page(request):
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid():
+            form.save()
+            username = request.user.first_name
+            messages.success(request, f'{username}, your profile has been updated.')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ProfileForm(instance=request.user.profile)
+    
+    return render(request, 'dprofile.html', {'form': form, 'show_profile_component': False})
 
 def dashboard_view(request):
     context = {
         'show_profile_component': 'true',
     }
     return render(request, 'dashboard.html', context, {'show_profile_component': False})
+
+def fetch_route(from_lat, from_lon, to_lat, to_lon, api_key):
+    waypoints = f"{from_lat},{from_lon}|{to_lat},{to_lon}"
+    url = f"https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode=drive&details=instruction_details&apiKey={api_key}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()  # returns the route in JSON format
+    else:
+        return

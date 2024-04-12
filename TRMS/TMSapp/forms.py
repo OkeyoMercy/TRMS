@@ -18,7 +18,6 @@ class ProfileForm(ModelForm):
         model = Profile
         fields = '__all__'
         exclude = ['user']
-
 class TMSAdminstratorCreationForm(ModelForm):
     id_number = forms.CharField(max_length=20, required=True)
     driving_license_number = forms.CharField(max_length=20, required=True)

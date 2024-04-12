@@ -1,7 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
@@ -22,17 +21,18 @@
   <link href="{% static 'assets/demo/demo.css' %}" rel="stylesheet" />
   <!-- Specific Page CSS goes HERE  -->
   {% block stylesheets %}{% endblock stylesheets %}
-
 </head>
-
 <body class="">
     <div class="wrapper ">
       {% include 'includes/sidebar.html' %}
       <div class="main-panel">
-        {% include 'includes/navigation.html' %}
-        <!-- End Navbar -->
-        <div id="profileComponentContainer" {% if not show_profile_component %}style="display: none;"{% endif %}>
-          {% include 'includes/profile_dashboard.html' %}
+        {% include 'dnavigation.html' %}
+      <div class="vitz_components">
+        <div class="profile-sidebar">
+          <div id="profileComponentContainer" {% if not show_profile_component %}style="display: none;"{% endif %}>
+            {% include 'dprofile_dashboard.html' %}
+        </div>
+        </div>
       </div>
         <div class="content">
           <div class="container-fluid">
@@ -43,12 +43,12 @@
       </div>
     </div>
   
-    {% include 'includes/fixed-plugin.html' %}
+    {% comment %} {% include 'includes/fixed-plugin.html' %} {% endcomment %}
   
     {% include 'includes/scripts-sidebar.html' %}
     {% include 'includes/scripts.html' %}
     <!-- Specific Page JS goes HERE  -->
     {% block javascripts %}{% endblock javascripts %}
-    <script src="{% static 'assets/js/main_dashboard.js' %}"></script>
+    {% comment %} <script src="{% static 'assets/js/main_dashboard.js' %}"></script> {% endcomment %}
   </body>
 </html>
