@@ -1,10 +1,29 @@
 {% extends 'admin/base.html' %}
 
 {% block content %}
-<h2>TMS Adminstrator Registration.</h2>
+<h2>TMS Administrator Registration.</h2>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Register</button>
 </form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"></script> <!-- Ensure this is included -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var input = document.querySelector("#phonenumber");
+    intlTelInput(input, {
+        initialCountry: "auto",
+        geoIpLookup: function(success, failure) {
+            fetch('https://ipinfo.io?token=3133f847721938')
+                .then(response => response.json())
+                .then(ipinfo => success(ipinfo.country))
+                .catch(failure);
+        },
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+    });
+});
+</script>
 {% endblock %}
+

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import transaction
 from django.forms import ModelForm
 
@@ -19,20 +20,52 @@ class ProfileForm(ModelForm):
         fields = '__all__'
         exclude = ['user']
 class TMSAdminstratorCreationForm(ModelForm):
-    id_number = forms.CharField(max_length=20, required=True)
+    id_number = forms.CharField(
+        max_length=20,
+        required=True,
+        validators=[
+            RegexValidator(r'^\d+$', message="ID number must be numeric and contain no spaces or special characters.")
+        ]
+        )
     driving_license_number = forms.CharField(max_length=20, required=True)
     email = forms.EmailField(required=True)
     region = forms.CharField(max_length=100, required=True)
-    phone_number = forms.CharField(max_length=15, required=True)
+    phone_number = forms.CharField(
+        max_length=15,
+        required=True,
+        widget=forms.TextInput(attrs={'placeholder': 'Enter your phone number', 'id': 'phonenumber', 'class': 'form-control'})
+    )
+
 
     class Meta:
         model = User  # Using the custom user model
         fields = ['first_name', 'middle_name', 'last_name', 'email', 'id_number', 'driving_license_number', 'region', 'phone_number']
+        
+    def clean_first_name(self):
+        first_name = self.cleaned_data['first_name']
+        if not first_name.isalpha():
+            raise ValidationError("!!First name must contain only letters.")
+        return first_name
 
+    def clean_middle_name(self):
+        middle_name = self.cleaned_data['middle_name']
+        if not middle_name.isalpha():
+            raise ValidationError("!!Middle name must contain only letters.")
+        return middle_name
+
+    def clean_last_name(self):
+        last_name = self.cleaned_data['last_name']
+        if not last_name.isalpha():
+            raise ValidationError("!!Last name must contain only letters.")
+        return last_name
+    
     def clean_id_number(self):
-        if User.objects.filter(id_number=self.cleaned_data['id_number']).exists():
+        id_number = self.cleaned_data['id_number']
+        if User.objects.filter(id_number=id_number).exists():
             raise ValidationError("A user with this ID number already exists.")
-        return self.cleaned_data['id_number']
+        if not id_number.isdigit():
+            raise ValidationError("!!ID number must contain only numeric digits.")
+        return id_number
 
     def clean_driving_license_number(self):
         if User.objects.filter(driving_license_number=self.cleaned_data['driving_license_number']).exists():
@@ -202,6 +235,27 @@ class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
         fields = ['sender','recipient']
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'middle_name', 'last_name', 'email', 'phone_number', 'region', 'id_number', 'driving_license_number', 'role']
+        read_only_fields = ['first_name', 'middle_name', 'last_name', 'region', 'id_number', 'driving_license_number', 'role']
+
+    def __init__(self, *args, **kwargs):
+        super(UserUpdateForm, self).__init__(*args, **kwargs)
+        for field in self.read_only_fields:
+            self.fields[field].disabled = True   # specify editable fields here
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("This email is already in use.")
+        return email
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data['phone_number']
+        if not phone_number.isdigit() and not any(char in "+-" for char in phone_number):
+            raise forms.ValidationError('Phone number must contain only digits, plus sign (+), or hyphens (-)')
+
+        return phone_number
 # class CustomPasswordChangeForm(PasswordChangeForm):
 #     class Meta:
 #         model = User

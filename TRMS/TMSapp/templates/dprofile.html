@@ -5,41 +5,120 @@
 {% block content %}
 <h2>Edit Profile</h2>
 <div class="profile" style="text-align: left;">
+    <!-- Existing Profile Picture Form -->
     <div class="profile-pic">
         {% if request.user.profile.profile_image %}
-          <img id="profilePicPreview" src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
+            <img id="profilePicPreview" src="{{ request.user.profile.profile_image.url }}" alt="Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
         {% else %}
-          <img id="profilePicPreview" src="{% static 'default-profile.png' %}" alt="No Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
+            <img id="profilePicPreview" src="{% static 'default-profile.png' %}" alt="No Profile Image" style="width: 200px; height: 200px; border-radius: 50%;">
         {% endif %}
-        <form id="profileImageForm" method="post" enctype="multipart/form-data" action="{% url 'dprofile_page' %}" style="display: inline;">
-          {% csrf_token %}
-          <label for="profilePicInput" class="change-profile-pic" style="cursor: pointer; display: block; margin-top: 10px; color: #007bff; text-decoration: underline;">
-            Change Profile Picture
-          </label>
-          <input type="file" id="profilePicInput" name="profile_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
-          <button type="submit" class="btn btn-primary" style="display: none; margin-top: 10px;" id="saveImageButton">Save Image</button>
+        <form id="profileImageForm" method="post" enctype="multipart/form-data" action="{% url 'dprofile_page' %}">
+            {% csrf_token %}
+            <label for="profilePicInput" class="change-profile-pic" style="cursor: pointer; display: block; margin-top: 10px; color: #007bff; text-decoration: underline;">
+                Change Profile Picture
+            </label>
+            <input type="file" id="profilePicInput" name="profile_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
+            <button type="submit" class="btn btn-primary" style="display: none; margin-top: 10px;" id="saveImageButton">Save Image</button>
         </form>
-      </div>
-  <p>Name: {{ request.user.first_name }} {{ request.user.middle_name }} {{ request.user.last_name }}</p>
-  <p>Email: {{ request.user.email }}</p>
-  <p>ID number: {{ request.user.id_number }}</p>
-  <p>Driving license number: {{ request.user.driving_license_number }}</p>
-  <p>Phone number: {{ request.user.phone_number }}</p>
-  <p>Region: {{ request.user.region }}</p>
-  <p>Role: {{ request.user.role }}</p>
-  {% if request.user.company %}
-    <p>Company: {{ request.user.company.name }}</p>
-  {% endif %}
+    </div>
+
+    <!-- User Details Display -->
+    <p>Name: {{ request.user.first_name }} {{ request.user.middle_name }} {{ request.user.last_name }}</p>
+    <p>Email: {{ request.user.email }}</p>
+    <p>Phone number: {{ request.user.phone_number }}</p>
+    <p>Region: {{ request.user.region }}</p>
+    <p>Role: {{ request.user.role }}</p>
+    {% if request.user.company %}
+        <p>Company: {{ request.user.company.name }}</p>
+    {% endif %}
+    <button onclick="confirmEdit()" class="btn btn-primary" id="editProfileDetails">Edit Profile details</button>
 </div>
+
+<!-- Edit Quiz Div -->
+<div id="edit_quiz" style="display: none; position: absolute; right: 10px; top: 100px; width: 30%;">
+    <h3>Verification</h3>
+    <form id="verificationForm">
+        <input type="text" id="id_number" placeholder="Your ID Number">
+        <input type="text" id="license_number" placeholder="Your Driving License Number">
+        <button class="btn btn-primary" type="button" onclick="verifyDetails()">Verify</button>
+    </form>
+</div>
+
+<!-- Form for Editing User Profile -->
+<div id="edit_form" style="display: none; position: absolute; right: 10px; top: 100px; width: 30%;">
+    <h3>Edit Your Details</h3>
+    <form method="post" action="{% url 'edit_user_profile' %}">
+      {% csrf_token %}
+      <input readonly="true" type="text" value="{{ request.user.first_name }} {{ request.user.middle_name }} {{ request.user.last_name }}">
+      <input type="text" name="email" value="{{ request.user.email }}">
+      <input type="text" name="phone_number" value="{{ request.user.phone_number }}">
+      <input readonly="true" type="text" value="{{ request.user.region }}">
+      {% if request.user.company %}
+          <input readonly="true" type="text" value="{{ request.user.company.name }}">
+      {% endif %}
+      <input readonly="true" type="text" value="{{ request.user.id_number }}">
+      <input readonly="true" type="text" value="{{ request.user.driving_license_number }}">
+      <input readonly="true" type="text" value="{{ request.user.role }}">
+      <button class="btn btn-primary" type="submit">Submit Changes</button>
+  </form>
+</div>
+
 <script>
-    function previewImage(event) {
-      var reader = new FileReader();
-      reader.onload = function() {
+function confirmEdit() {
+    if (confirm("Do you really want to edit your profile?")) {
+        document.getElementById('edit_quiz').style.display = 'block';
+    }
+}
+
+function verifyDetails() {
+    const id = document.getElementById('id_number').value;
+    const license = document.getElementById('license_number').value;
+    if (id === '{{ request.user.id_number }}' && license === '{{ request.user.driving_license_number }}') {
+        alert('Verification successful. You can now edit your profile.');
+        document.getElementById('edit_quiz').style.display = 'none';
+        document.getElementById('edit_form').style.display = 'block';
+    } else {
+        alert('Verification failed. Please try again.');
+    }
+}
+
+function previewImage(event) {
+    var reader = new FileReader();
+    reader.onload = function() {
         var output = document.getElementById('profilePicPreview');
         output.src = reader.result;
         document.getElementById('saveImageButton').style.display = 'block'; // Show the save button
-      };
-      reader.readAsDataURL(event.target.files[0]);
-    }
-  </script>
+    };
+    reader.readAsDataURL(event.target.files[0]);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('#edit_form form');
+    form.addEventListener('submit', function(event) {
+        const emailInput = document.querySelector('input[name="email"]');
+        const phoneNumberInput = document.querySelector('input[name="phone_number"]');
+        const emailValue = emailInput.value;
+        const phoneNumberValue = phoneNumberInput.value;
+
+        // Email validation regex pattern
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Phone number validation (basic digits only for example, adjust regex as needed)
+        const phonePattern = /^\d{10,15}$/; // Adjust pattern to fit specific needs (10 to 15 digits as an example)
+
+        if (!emailPattern.test(emailValue)) {
+            alert('Please enter a valid email address.');
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+
+        if (!phonePattern.test(phoneNumberValue)) {
+            alert('Please enter a valid phone number with the correct number of digits.');
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+
+        return true; // Submit the form if all checks are passed
+    });
+});
+</script>
 {% endblock content %}

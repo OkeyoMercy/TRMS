@@ -1,8 +1,6 @@
+{% extends 'manager_dashboard.html'%}
+{%block content%}
 {% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-    <!-- Add any head content here, if needed -->
     <link rel="stylesheet" type="text/css" href="{% static 'send_message_style.css' %}">
     <script>
         {% if message_sent %}
@@ -22,4 +20,4 @@
     <a href="{% url 'inbox' %}">Inbox</a>
     <p>Recipient ID: {{ recipient_id }} Name: {{ message.recipient }}</p>
 </body>
-</html>
+{%endblock content%}

@@ -1,10 +1,11 @@
-{% extends driver_dashboard.html %}
+{% extends "admin/base.html" %}
 
 {% block content%}
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<div id="control-panel" style="padding: 10px; background-color: white; border-radius: 5px; position: absolute; top: 10px; left: 10px; z-index: 1000;">
+<div id="map"></div>
+<div id="map_details">
     <label>Start Lat:</label>
     <input type="text" id="startLat" placeholder="Latitude" />
     <label>Start Lon:</label>
@@ -14,10 +15,6 @@
     <label>End Lon:</label>
     <input type="text" id="endLon" placeholder="Longitude" />
     <button onclick="calculateRoute()">Generate Route</button>
-</div>
-
-<div id="map" style="width: 100%; height: 400px;"></div>
-<div style="padding: 10px; background-color: white; border-radius: 5px; position: absolute; bottom: 100px; left: 10px; z-index: 1000;">
     <label for="unit-selector">Choose units:</label>
     <select id="unit-selector">
         <option value="meters">Meters</option>
@@ -27,12 +24,14 @@
     <div id="distance-display">Distance: N/A</div>
 </div>
 
+
 <script>
-    var map = L.map('map').setView([38.937165, -77.045590], 13);
+    var map = L.map('map').setView([-1.292066, 36.821946], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
     }).addTo(map);
+    
 
     const apiKey = "741d0d2af1464218a70179a5d91f08f1";
     let waypoints = [];
@@ -144,7 +143,6 @@
                 });
             });
         });
-    
         L.geoJSON({
             type: "FeatureCollection",
             features: turnByTurns

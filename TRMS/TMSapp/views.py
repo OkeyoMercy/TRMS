@@ -20,7 +20,8 @@ from django.urls import reverse
 from django.views.generic import CreateView
 
 from .forms import (CompanyManagerForm, DriverRegistrationForm, LoginForm,
-                    MessageForm, ProfileForm, TMSAdminstratorCreationForm)
+                    MessageForm, ProfileForm, TMSAdminstratorCreationForm,
+                    UserUpdateForm)
 from .models import (Company, CustomUser, Driver, Message, Profile,
                      RoadCondition, Route, Task, Weather)
 #testing route
@@ -449,7 +450,7 @@ def get_route(request):
     
 #testing route
 def render_route(request):
-    return render(request, 'mbasemap.html', {'show_profile_component': False})
+    return render(request, 'basemap.html', {'show_profile_component': False})
 
 
 def profile_page(request):
@@ -496,3 +497,15 @@ def fetch_route(from_lat, from_lon, to_lat, to_lon, api_key):
         return response.json()  # returns the route in JSON format
     else:
         return
+
+@login_required
+def edit_user_profile(request):
+    if request.method == 'POST':
+        user = request.user
+        user.email = request.POST.get('email', user.email)  # Update email
+        user.phone_number = request.POST.get('phone_number', user.phone_number)  # Update phone number
+        user.save()
+
+        return redirect('dprofile_page')  # Redirect to a confirmation page or back to the form
+
+    return render(request, 'dprofile.html')

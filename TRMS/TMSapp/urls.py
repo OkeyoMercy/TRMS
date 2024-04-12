@@ -6,10 +6,11 @@ from django.views.generic.base import TemplateView
 from . import views
 from .views import (company_creation_view, compose_message, dashboard_redirect,
                     display_best_route, dprofile_page, driver_dashboard,
-                    driver_registration_view, inbox, login_view,
-                    manager_dashboard, messages_view, profile, profile_page,
-                    render_route, route_view, send_message, tasks_view,
-                    tms_admin_dashboard, tms_adminstrator_create_view)
+                    driver_registration_view, edit_user_profile, inbox,
+                    login_view, manager_dashboard, messages_view, profile,
+                    profile_page, render_route, route_view, send_message,
+                    tasks_view, tms_admin_dashboard,
+                    tms_adminstrator_create_view)
 
 urlpatterns = [
     path('', login_view, name='login'),
@@ -45,4 +46,5 @@ urlpatterns = [
     path('profiles/', profile_page, name='profile_page'),
     path('dprofiles/', dprofile_page, name='dprofile_page'),
     path('render-route/', render_route, name='render_route'),
+    path('edit_profile/', edit_user_profile, name='edit_user_profile'),
 ]
