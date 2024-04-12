@@ -1,4 +1,5 @@
 import logging
+from django.contrib.auth import logout
 
 import requests
 import urllib3
@@ -55,6 +56,12 @@ def login_view(request):
     else:
         form = LoginForm()
     return render(request, 'login.html', {'form': form,'show_profile_component': False})
+from django.shortcuts import redirect
+
+def logout_view(request):
+    logout(request)
+    # Redirect to a login page or home page
+    return redirect('login.html')  
 
 @login_required
 def dashboard_redirect(request):

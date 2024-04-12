@@ -49,6 +49,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+    def get_full_name(self):
+        # Include the middle name in the full name if it exists
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
+        else:
+            return f"{self.first_name} {self.last_name}"
+
+    def get_short_name(self):
+        # You can also add a method to return the short name, commonly the first name
+        return self.first_name
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     profile_image = models.ImageField(upload_to='profile_pics/', default='profile_pics/user_profile_pic.png')
